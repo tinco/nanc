@@ -9,9 +9,7 @@ import Language.C.Data.Ident
 import LLVM.General.AST hiding (Module)
 import qualified LLVM.General.AST as AST
 
-import Nanc.AST
 import Nanc.CodeGenState
-import Nanc.IR.Instructions
 
 {-
  A module consists of a list of external declarations.
@@ -25,7 +23,7 @@ External declarations can either be a toplevel declaration, a function definitio
 generateExtDecl :: CExtDecl -> Module ()
 generateExtDecl (CDeclExt decl) = generateToplevelDecl decl
 generateExtDecl (CFDefExt decl) = generateFunDef decl
-generateExtDecl (CAsmExt decl _) = trace "ASM" $ undefined
+generateExtDecl (CAsmExt _decl _) = trace "ASM" $ undefined
 
 
 {-
@@ -34,7 +32,7 @@ at most one storage class specifier is allowed per declaration
 the elements of the non-empty init-declarator-list are of the form (Just declr, init?, Nothing). The declarator declr has to be present and non-abstract and the initialization expression is optional.
 -}
 generateToplevelDecl :: CDecl -> Module ()
-generateToplevelDecl decl@(CDecl specs dclrs _)
+generateToplevelDecl decl@(CDecl specs _dclrs _)
 	| hasExternSpec = generateExtern decl
 	| hasTypedefSpec = generateTypedef decl
 	| hasTypeSpec = generateTypeSpec decl
@@ -53,28 +51,28 @@ generateToplevelDecl decl@(CDecl specs dclrs _)
 		isTypeSpec _ = False	
 
 generateExtern :: CDecl -> Module ()
-generateExtern decl@(CDecl specs [(Just declr,_,_)] _) = external tp name fnargs
+generateExtern _decl@(CDecl specs [(Just declr,_,_)] _) = external tp name fnargs
 	where
 		fnargs = []
 		tp = extractReturnType specs
 		name = extractDeclrName declr
 
 generateTypedef :: CDecl -> Module ()
-generateTypedef decl = trace "Don't know how to generate typedefs yet" $ return ()
+generateTypedef _decl = trace "Don't know how to generate typedefs yet" $ return ()
 
 generateTypeSpec :: CDecl -> Module ()
-generateTypeSpec decl = trace "Don't know how to generate typeSpecs yet" $ return ()
+generateTypeSpec _decl = trace "Don't know how to generate typeSpecs yet" $ return ()
 
 generateFunDef :: CFunDef -> Module ()
-generateFunDef (CFunDef specifiers declr decls stat _) = define tp name fnargs bls
+generateFunDef (CFunDef specifiers declr _decls stat _) = define tp name fnargs bls
 	where
 		tp = extractReturnType specifiers
 		name = extractDeclrName declr
-		args = []
+		_args = []
 		fnargs = []
 		bls = createBlocks $ execCodegen $ do
-			entry <- addBlock entryBlockName
-			setBlock entry
+			entryB <- addBlock entryBlockName
+			setBlock entryB
 			-- generate argument code here
 			generateStat stat
 
@@ -86,8 +84,8 @@ generateStat _d = undefined
 
 generateExpr :: CExpr -> Codegen ()
 generateExpr (CCall fn' args' _) = do
-	args <- mapM generateExpr args'
-	fn <- generateExpr fn'
+	_args <- mapM generateExpr args'
+	_fn <- generateExpr fn'
 	-- call fn args
 	return ()
 

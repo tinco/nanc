@@ -17,9 +17,6 @@ import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
 
 import qualified LLVM.General.AST.Constant as C
-import qualified LLVM.General.AST.Attribute as A
-import qualified LLVM.General.AST.CallingConvention as CC
-import qualified LLVM.General.AST.FloatingPointPredicate as FP
 
 type SymbolTable = [(String, Operand)]
 

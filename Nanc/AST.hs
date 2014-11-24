@@ -68,32 +68,33 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 
 		updateStorageSpec ds ss = ds { 
 			declStorage = declStorage',
-			declStorageNodes = n : (declStorageNodes ds) 
+			declStorageNodes = n' : (declStorageNodes ds) 
 		}
 			where
-			(declStorage', n) = parse ss
-			parse (CAuto n) = (Auto,n)
-			parse (CRegister n) = (Register,n)
-			parse (CStatic n) = (Static,n)
-			parse (CExtern n) = (Extern,n)
-			parse (CTypedef n) = (Typedef,n)
-			parse (CThread n) = (Thread,n)
+			(declStorage', n') = parse ss
+				where
+					parse (CAuto n) = (Auto,n)
+					parse (CRegister n) = (Register,n)
+					parse (CStatic n) = (Static,n)
+					parse (CExtern n) = (Extern,n)
+					parse (CTypedef n) = (Typedef,n)
+					parse (CThread n) = (Thread,n)
 
 		updateTypeSpec :: DeclarationSpecs -> CTypeSpec -> [CDeclSpec] -> DeclarationSpecs
 		updateTypeSpec ds spec rest
 			| hasSpec = ds
 			| otherwise = ds { 
 				declType = declType',
-				declTypeNodes = n : (declTypeNodes ds) 
+				declTypeNodes = n' : (declTypeNodes ds) 
 			}
 			where
-				specs = spec : (filterTypeSpecs rest)
+				tspecs = spec : (filterTypeSpecs rest)
 				filterTypeSpecs :: [CDeclSpec] -> [CTypeSpec]
 				filterTypeSpecs [] = []
 				filterTypeSpecs ((CTypeSpec ts):rs) = ts : filterTypeSpecs rs
 				filterTypeSpecs _ = []
 				hasSpec = isNoTypeSpec $ declType ds
-				(declType', n) = parse spec
+				(declType', n') = parse spec
 				-- we willen weten of er een int is in te typespec
 				-- als die er is dan willen we weten of er ook een
 				-- long, signed, of int is.
@@ -131,20 +132,18 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 				parse (CUnsigType n) = parse (CIntType n)
 
 
-				hasSigned = any isSignedT specs
+				hasSigned = any isSignedT tspecs
 				isSignedT (CSignedType _) = True
 				isSignedT _ = False
-				hasUnsigned = any isUnsignedT specs
+				hasUnsigned = any isUnsignedT tspecs
 				isUnsignedT (CUnsigType _) = True
 				isUnsignedT _ = False
-				hasLong = any isLongT specs
+				hasLong = any isLongT tspecs
 				isLongT (CLongType _) = True
 				isLongT _ = False
-				hasTwoLong = any isLongT $ drop 1 $ snd $ break isLongT specs
+				hasTwoLong = any isLongT $ drop 1 $ snd $ break isLongT tspecs
 				isShortT (CShortType _) = True
 				isShortT _ = False
-				hasShort = any isShortT specs
+				hasShort = any isShortT tspecs
 
-
-
-		updateTypeQual ds qual = undefined
+		updateTypeQual _ds _qual = undefined
