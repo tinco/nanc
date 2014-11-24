@@ -93,29 +93,29 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 				filterTypeSpecs ((CTypeSpec ts):rs) = ts : filterTypeSpecs rs
 				filterTypeSpecs _ = []
 				hasSpec = isNoTypeSpec $ declType ds
-				(declType', n) = parse spec (filterTypeSpecs rest) 
+				(declType', n) = parse spec
 				-- we willen weten of er een int is in te typespec
 				-- als die er is dan willen we weten of er ook een
 				-- long, signed, of int is.
 				--
-				parse :: CTypeSpec -> [CTypeSpec] -> (TypeSpec, NodeInfo)
-				parse (CVoidType n) _ = (ST Void, n)
-				parse (CFloatType n) _ = (ST Float, n)
-				parse (CBoolType n) _ = (ST Bool, n)
-				parse (CComplexType n) _ = trace ("What the hell is a ComplexType? " ++ (show n)) undefined
-				parse (CSUType u n) _ = (CT (CSU u), n)
-				parse (CEnumType e n) _ = (CT (E e), n)
-				parse (CTypeDef i n) _ = (CT (TD i), n)
-				parse (CTypeOfExpr e n) _ = (CT (TOE e), n)
-				parse (CTypeOfType d n) _ = (CT (TOT d), n)
-				parse (CCharType n) _ 
+				parse :: CTypeSpec -> (TypeSpec, NodeInfo)
+				parse (CVoidType n) = (ST Void, n)
+				parse (CFloatType n) = (ST Float, n)
+				parse (CBoolType n) = (ST Bool, n)
+				parse (CComplexType n) = trace ("What the hell is a ComplexType? " ++ (show n)) undefined
+				parse (CSUType u n) = (CT (CSU u), n)
+				parse (CEnumType e n) = (CT (E e), n)
+				parse (CTypeDef i n) = (CT (TD i), n)
+				parse (CTypeOfExpr e n) = (CT (TOE e), n)
+				parse (CTypeOfType d n) = (CT (TOT d), n)
+				parse (CCharType n)
 					| hasSigned = (ST SignedChar, n)
 					| hasUnsigned = (ST UnsignedChar, n)
 					| otherwise = (ST Char, n)
-				parse (CDoubleType n) _
+				parse (CDoubleType n)
 					| hasLong = (ST LongDouble, n)
 					| otherwise = (ST Double, n)
-				parse (CIntType n) _
+				parse (CIntType n)
 					| hasTwoLong && hasUnsigned = (ST UnsignedLongLongInt, n)
 					| hasTwoLong = (ST SignedLongLongInt, n)
 					| hasLong && hasUnsigned = (ST UnsignedLongInt, n)
@@ -125,17 +125,25 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 					| hasUnsigned = (ST UnsignedInt, n)
 					| otherwise = (ST SignedInt, n)
 
-				-- think about just long, just short, long long.. etc?
-				parse (CShortType _) (d:r) = parse d r
-				parse (CSignedType _) (d:r) = parse d r
-				parse (CUnsigType _) (d:r) = parse d r
-				parse (CLongType _) (d:r) = parse d r
+				parse (CShortType n) = parse (CIntType n)
+				parse (CLongType n) = parse (CIntType n)
+				parse (CSignedType n) = parse (CIntType n)
+				parse (CUnsigType n) = parse (CIntType n)
 
-				hasSigned = undefined
-				hasUnsigned = undefined
-				hasLong = undefined
-				hasTwoLong = undefined
-				hasShort = undefined
+
+				hasSigned = any isSignedT specs
+				isSignedT (CSignedType _) = True
+				isSignedT _ = False
+				hasUnsigned = any isUnsignedT specs
+				isUnsignedT (CUnsigType _) = True
+				isUnsignedT _ = False
+				hasLong = any isLongT specs
+				isLongT (CLongType _) = True
+				isLongT _ = False
+				hasTwoLong = any isLongT $ drop 1 $ snd $ break isLongT specs
+				isShortT (CShortType _) = True
+				isShortT _ = False
+				hasShort = any isShortT specs
 
 
 
