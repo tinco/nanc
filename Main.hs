@@ -1,6 +1,7 @@
 module Main where
 
-import Control.Monad.Except
+import Control.Monad
+import Control.Monad.Trans.Except
 
 import Language.C
 import Language.C.System.GCC
