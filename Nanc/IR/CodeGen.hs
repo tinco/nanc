@@ -27,7 +27,6 @@ generateExtDecl (CDeclExt decl) = generateToplevelDecl decl
 generateExtDecl (CFDefExt decl) = generateFunDef decl
 generateExtDecl (CAsmExt _decl _) = trace "ASM" $ undefined
 
-
 {-
 C99 requires that there is at least one specifier, though this is merely a syntactic restriction
 at most one storage class specifier is allowed per declaration
@@ -35,36 +34,34 @@ the elements of the non-empty init-declarator-list are of the form (Just declr, 
 -}
 generateToplevelDecl :: CDecl -> Module ()
 generateToplevelDecl decl@(CDecl specs _dclrs _)
-	| hasExternSpec = generateExtern decl
-	| hasTypedefSpec = generateTypedef decl
-	| hasTypeSpec = generateTypeSpec decl
-	| otherwise = trace ("got unknown toplevel decl: " ++ (show decl)) undefined
+	| isExtern = generateExtern declSpecs decl
+	| isTypedef = generateTypedef declSpecs decl
+	| isStatic = generateStaticDecl declSpecs decl
+	| otherwise = trace ("got unknown toplevel decl: " ++ (show declSpecs) ++
+		"Decl: " ++ (show decl)) undefined
 	where
-		hasExternSpec = any isExtern specs
-		isExtern (CStorageSpec (CExtern _)) = True
-		isExtern _ = False
+		declSpecs = globalDeclSpecDefaults $ buildDeclarationSpecs specs
+		storage = declStorage declSpecs
+		
+		isExtern = storage == Extern
+		isTypedef = storage == Typedef
+		isStatic = storage == Static
 
-		hasTypedefSpec = any isTypedef specs
-		isTypedef (CStorageSpec (CTypedef _)) = True
-		isTypedef _ = False
 
-		hasTypeSpec = any isTypeSpec specs
-		isTypeSpec (CTypeSpec _) = True
-		isTypeSpec _ = False	
 
-generateExtern :: CDecl -> Module ()
-generateExtern _decl@(CDecl specs [(Just declr,_,_)] _) = external tp name fnargs
+generateExtern :: DeclarationSpecs -> CDecl -> Module ()
+generateExtern declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) = external tp name fnargs
 	where
 		fnargs = []
-		declSpecs = buildDeclarationSpecs specs
 		tp = generateType $ declType declSpecs
 		name = extractDeclrName declr
 
-generateTypedef :: CDecl -> Module ()
-generateTypedef _decl = trace "Don't know how to generate typedefs yet" $ return ()
+generateTypedef :: DeclarationSpecs -> CDecl -> Module ()
+generateTypedef _declSpecs _decl = trace "Don't know how to generate typedefs yet" $ return ()
 
-generateTypeSpec :: CDecl -> Module ()
-generateTypeSpec _decl = trace "Don't know how to generate typeSpecs yet" $ return ()
+generateStaticDecl :: DeclarationSpecs -> CDecl -> Module ()
+generateStaticDecl declSpecs decl = trace ("Don't know how to generate toplevel static decl: " ++ (show declSpecs) ++
+		"Decl: " ++ (show decl)) undefined
 
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = define tp name fnargs bls

@@ -7,7 +7,7 @@ import Language.C
 import Debug.Trace
 
 data StorageSpec = Auto | Register | Static | Extern | Typedef | Thread | NoStorageSpec
-	deriving (Show)
+	deriving (Show, Eq)
 
 data SimpleType = 
 	Char |
@@ -41,7 +41,7 @@ data TypeQualifiers = TypeQualifiers {
 	typeIsConst :: Bool,
 	typeIsRestrict :: Bool,
 	typeIsInline :: Bool
-}
+} deriving (Show)
 
 defaultTypeQualifiers :: TypeQualifiers
 defaultTypeQualifiers = TypeQualifiers False False False False
@@ -54,13 +54,21 @@ data DeclarationSpecs = DeclarationSpecs {
 	declStorageNodes :: [NodeInfo],
 	declTypeNodes :: [NodeInfo],
 	declQualifierNodes :: [NodeInfo]
-}
+} deriving (Show)
 
-defaultDeclarationSpec :: DeclarationSpecs
-defaultDeclarationSpec = DeclarationSpecs NoStorageSpec NoTypeSpec defaultTypeQualifiers [] [] [] []
+emptyDeclarationSpec :: DeclarationSpecs
+emptyDeclarationSpec = DeclarationSpecs NoStorageSpec NoTypeSpec defaultTypeQualifiers [] [] [] []
+
+globalDeclSpecDefaults :: DeclarationSpecs -> DeclarationSpecs
+globalDeclSpecDefaults ds = ds {
+		declStorage = declStorage'
+	}
+	where
+		declStorage' | declStorage ds == NoStorageSpec = Static
+		             | otherwise = declStorage ds
 
 buildDeclarationSpecs :: [CDeclSpec] -> DeclarationSpecs
-buildDeclarationSpecs specs = build defaultDeclarationSpec specs
+buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 	where
 		build ds [] = ds
 		build ds ((CStorageSpec ss):rest) = build (updateStorageSpec ds ss) rest
@@ -98,7 +106,7 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 				filterTypeSpecs [] = []
 				filterTypeSpecs ((CTypeSpec ts):rs) = ts : filterTypeSpecs rs
 				filterTypeSpecs _ = []
-				hasSpec = isNoTypeSpec $ declType ds
+				hasSpec = not $ isNoTypeSpec $ declType ds
 				(declType', n') = parse spec
 				-- we willen weten of er een int is in te typespec
 				-- als die er is dan willen we weten of er ook een
