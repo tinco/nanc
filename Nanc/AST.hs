@@ -48,11 +48,10 @@ data DeclarationSpecs = DeclarationSpecs {
 	declStorage :: StorageSpec,
 	declType :: TypeSpec,
 	declQualifiers :: TypeQualifiers,
-	declAttributes :: [CAttr],
+	declAttributes :: [CAttrQual],
 	declStorageNodes :: [NodeInfo],
 	declTypeNodes :: [NodeInfo],
-	declQualifierNodes :: [NodeInfo],
-	declAttributeNodes :: [NodeInfo]
+	declQualifierNodes :: [NodeInfo]
 }
 
 defaultDeclarationSpec :: DeclarationSpecs
@@ -64,7 +63,7 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 		build ds [] = ds
 		build ds ((CStorageSpec ss):rest) = build (updateStorageSpec ds ss) rest
 		build ds ((CTypeSpec spec):rest) = build (updateTypeSpec ds spec rest) rest
-		build ds ((CTypeQual qual):rest) = build (updateTypeQual ds qual) rest
+		build ds quals@((CTypeQual qual):_) = build (updateTypeQual ds quals)
 
 		updateStorageSpec ds ss = ds { 
 			declStorage = declStorage',
@@ -146,4 +145,35 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 				isShortT _ = False
 				hasShort = any isShortT tspecs
 
-		updateTypeQual _ds _qual = undefined
+		-- This function is going to perform horribly, I'm too tired to think
+		-- of how to do it smarter:
+		updateTypeQual ds quals = ds {
+			declQualifiers = TypeQualifiers hasVolatile hasConst hasRestrict hasInline,
+			declQualifierNodes = map toNode typeQuals
+			declAttributes = attrQuals
+		}
+		where
+			typeQuals = filter isTypeQual quals
+			attrQuals = filter (not.isTypeQual) quals
+
+			hasVolatile = any isVolatileQ typeQuals
+			hasConst = any isConstQ typeQuals
+			hasRestrict = any isRestrictQ typeQuals
+			hasInline = any isInlineQ typeQuals
+
+			isTypeQual (CAttrQual _) = False
+			isTypeQual _ = True
+
+			isVolatileQ (CVolatQual _) = True
+			isVolatileQ _ = False
+			isRestrictQ (CRestrQual _) = True
+			isRestrictQ _ = False
+			isConstQ (CConstQual _) = True
+			isConstQ _ = False
+			isInlineQ (CInlineQual _) = True
+			isInlineQ _ = False
+
+			toNode (CVolatQual n) = n
+			toNode (CRestrQual n) = n
+			toNode (CConstQual n) = n
+			toNode (CInlineQual n) = n
