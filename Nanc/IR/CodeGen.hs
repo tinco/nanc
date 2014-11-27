@@ -10,6 +10,7 @@ import LLVM.General.AST hiding (Module)
 import qualified LLVM.General.AST as AST
 
 import Nanc.CodeGenState
+import Nanc.AST
 
 {-
  A module consists of a list of external declarations.
@@ -64,9 +65,10 @@ generateTypeSpec :: CDecl -> Module ()
 generateTypeSpec _decl = trace "Don't know how to generate typeSpecs yet" $ return ()
 
 generateFunDef :: CFunDef -> Module ()
-generateFunDef (CFunDef specifiers declr _decls stat _) = define tp name fnargs bls
+generateFunDef (CFunDef specs declr _decls stat _) = define tp name fnargs bls
 	where
-		tp = extractReturnType specifiers
+		declSpecs = buildDeclarationSpecs specs
+		tp = extractReturnType specs
 		name = extractDeclrName declr
 		_args = []
 		fnargs = []

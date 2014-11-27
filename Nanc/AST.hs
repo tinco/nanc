@@ -1,5 +1,7 @@
 module Nanc.AST where
 
+import Data.Maybe
+
 import Language.C
 
 import Debug.Trace
@@ -48,14 +50,14 @@ data DeclarationSpecs = DeclarationSpecs {
 	declStorage :: StorageSpec,
 	declType :: TypeSpec,
 	declQualifiers :: TypeQualifiers,
-	declAttributes :: [CAttrQual],
+	declAttributes :: [CAttr],
 	declStorageNodes :: [NodeInfo],
 	declTypeNodes :: [NodeInfo],
 	declQualifierNodes :: [NodeInfo]
 }
 
 defaultDeclarationSpec :: DeclarationSpecs
-defaultDeclarationSpec = DeclarationSpecs NoStorageSpec NoTypeSpec defaultTypeQualifiers [] [] [] [] []
+defaultDeclarationSpec = DeclarationSpecs NoStorageSpec NoTypeSpec defaultTypeQualifiers [] [] [] []
 
 buildDeclarationSpecs :: [CDeclSpec] -> DeclarationSpecs
 buildDeclarationSpecs specs = build defaultDeclarationSpec specs
@@ -63,7 +65,11 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 		build ds [] = ds
 		build ds ((CStorageSpec ss):rest) = build (updateStorageSpec ds ss) rest
 		build ds ((CTypeSpec spec):rest) = build (updateTypeSpec ds spec rest) rest
-		build ds quals@((CTypeQual qual):_) = build (updateTypeQual ds quals)
+		build ds quals@((CTypeQual _):_) = updateTypeQual ds typeQuals
+			where
+				typeQuals = catMaybes $ map extractTypeQual quals
+				extractTypeQual (CTypeQual tq) = Just tq
+				extractTypeQual _ = Nothing
 
 		updateStorageSpec ds ss = ds { 
 			declStorage = declStorage',
@@ -147,33 +153,34 @@ buildDeclarationSpecs specs = build defaultDeclarationSpec specs
 
 		-- This function is going to perform horribly, I'm too tired to think
 		-- of how to do it smarter:
+		updateTypeQual :: DeclarationSpecs -> [CTypeQual] -> DeclarationSpecs
 		updateTypeQual ds quals = ds {
 			declQualifiers = TypeQualifiers hasVolatile hasConst hasRestrict hasInline,
-			declQualifierNodes = map toNode typeQuals
-			declAttributes = attrQuals
+			declQualifierNodes = map toNode typeQuals,
+			declAttributes = map (\ (CAttrQual a) -> a) attrQuals
 		}
-		where
-			typeQuals = filter isTypeQual quals
-			attrQuals = filter (not.isTypeQual) quals
+			where
+				typeQuals = filter isTypeQual quals
+				attrQuals = filter (not.isTypeQual) quals
 
-			hasVolatile = any isVolatileQ typeQuals
-			hasConst = any isConstQ typeQuals
-			hasRestrict = any isRestrictQ typeQuals
-			hasInline = any isInlineQ typeQuals
+				hasVolatile = any isVolatileQ typeQuals
+				hasConst = any isConstQ typeQuals
+				hasRestrict = any isRestrictQ typeQuals
+				hasInline = any isInlineQ typeQuals
 
-			isTypeQual (CAttrQual _) = False
-			isTypeQual _ = True
+				isTypeQual (CAttrQual _) = False
+				isTypeQual _ = True
 
-			isVolatileQ (CVolatQual _) = True
-			isVolatileQ _ = False
-			isRestrictQ (CRestrQual _) = True
-			isRestrictQ _ = False
-			isConstQ (CConstQual _) = True
-			isConstQ _ = False
-			isInlineQ (CInlineQual _) = True
-			isInlineQ _ = False
+				isVolatileQ (CVolatQual _) = True
+				isVolatileQ _ = False
+				isRestrictQ (CRestrQual _) = True
+				isRestrictQ _ = False
+				isConstQ (CConstQual _) = True
+				isConstQ _ = False
+				isInlineQ (CInlineQual _) = True
+				isInlineQ _ = False
 
-			toNode (CVolatQual n) = n
-			toNode (CRestrQual n) = n
-			toNode (CConstQual n) = n
-			toNode (CInlineQual n) = n
+				toNode (CVolatQual n) = n
+				toNode (CRestrQual n) = n
+				toNode (CConstQual n) = n
+				toNode (CInlineQual n) = n
