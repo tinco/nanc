@@ -6,11 +6,12 @@ import Data.Maybe
 import Language.C
 import Language.C.Data.Ident
 
-import LLVM.General.AST hiding (Module)
 import qualified LLVM.General.AST as AST
 
 import Nanc.CodeGenState
 import Nanc.AST
+
+import Nanc.IR.Types
 
 {-
  A module consists of a list of external declarations.
@@ -55,7 +56,8 @@ generateExtern :: CDecl -> Module ()
 generateExtern _decl@(CDecl specs [(Just declr,_,_)] _) = external tp name fnargs
 	where
 		fnargs = []
-		tp = extractReturnType specs
+		declSpecs = buildDeclarationSpecs specs
+		tp = generateType $ declType declSpecs
 		name = extractDeclrName declr
 
 generateTypedef :: CDecl -> Module ()
@@ -68,7 +70,7 @@ generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = define tp name fnargs bls
 	where
 		declSpecs = buildDeclarationSpecs specs
-		tp = extractReturnType specs
+		tp = generateType $ declType declSpecs
 		name = extractDeclrName declr
 		_args = []
 		fnargs = []
@@ -97,11 +99,5 @@ generateBlockItem :: CBlockItem -> Codegen ()
 generateBlockItem (CBlockStmt stat) = generateStat stat
 generateBlockItem _ = undefined
 
-extractReturnType :: [CDeclSpec] -> Type
-extractReturnType [] = VoidType
-extractReturnType (x:[]) = trace ("encountered returntype: " ++ (show x)) VoidType
-extractReturnType xs = trace ("encountered returntypes: " ++ (show xs)) VoidType
-
 extractDeclrName :: CDeclr -> String
 extractDeclrName (CDeclr ident _ _ _ _)= maybe "anonymous" (\ (Ident n _ _) -> n) ident
-
