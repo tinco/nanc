@@ -28,9 +28,11 @@ data SimpleType =
 	Void
 	deriving (Show)
 
-data ComplexType = CSU CStructUnion | E CEnum | TD Ident | TOE CExpr | TOT CDecl deriving (Show)
+data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD Ident | TOE CExpr | TOT CDecl deriving (Show)
 
-data TypeSpec = CT ComplexType | ST SimpleType | NoTypeSpec deriving (Show)
+data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | NoTypeSpec deriving (Show)
+
+data QualifiedType = QualifiedType TypeSpec TypeQualifiers
 
 isNoTypeSpec :: TypeSpec -> Bool
 isNoTypeSpec NoTypeSpec = True
@@ -48,9 +50,7 @@ defaultTypeQualifiers = TypeQualifiers False False False False
 
 data DeclarationSpecs = DeclarationSpecs {
 	declStorage :: StorageSpec,
-	declType :: TypeSpec,
-	declQualifiers :: TypeQualifiers,
-	declAttributes :: [CAttr],
+	declType :: QualifiedType,
 	declStorageNodes :: [NodeInfo],
 	declTypeNodes :: [NodeInfo],
 	declQualifierNodes :: [NodeInfo]
@@ -108,10 +108,7 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 				filterTypeSpecs _ = []
 				hasSpec = not $ isNoTypeSpec $ declType ds
 				(declType', n') = parse spec
-				-- we willen weten of er een int is in te typespec
-				-- als die er is dan willen we weten of er ook een
-				-- long, signed, of int is.
-				--
+
 				parse :: CTypeSpec -> (TypeSpec, NodeInfo)
 				parse (CVoidType n) = (ST Void, n)
 				parse (CFloatType n) = (ST Float, n)
@@ -192,3 +189,8 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 				toNode (CRestrQual n) = n
 				toNode (CConstQual n) = n
 				toNode (CInlineQual n) = n
+
+data FunctionDeclarator = FunctionDeclarator {
+	functionName :: String,
+	functionReturnType :: QualifiedType
+}

@@ -17,7 +17,7 @@ liftError = runExceptT >=> either fail return
 main :: IO ()
 main = do
 	parsed <- parseMyFile "test.c"
-	printMyAST parsed
+	--printMyAST parsed
 
 	let ast = generate "test" parsed
 

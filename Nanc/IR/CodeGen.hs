@@ -50,18 +50,22 @@ generateToplevelDecl decl@(CDecl specs _dclrs _)
 
 
 generateExtern :: DeclarationSpecs -> CDecl -> Module ()
-generateExtern declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) = external tp name fnargs
+generateExtern _declSpecs _decl@(CDecl _ [(Just declr,Nothing,Nothing)] _) | printf = trace ("ExternDecl: " ++ name ++ " " ++ (show declr)) $ undefined
+                                                                        | otherwise = return ()
 	where
-		fnargs = []
-		tp = generateType $ declType declSpecs
 		name = extractDeclrName declr
+		printf = name == "printf"
 
 generateTypedef :: DeclarationSpecs -> CDecl -> Module ()
-generateTypedef _declSpecs _decl = trace "Don't know how to generate typedefs yet" $ return ()
-
+generateTypedef _declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) = trace ("Typedef: " ++ name) $ return ()
+	where
+		name = extractDeclrName declr
 generateStaticDecl :: DeclarationSpecs -> CDecl -> Module ()
-generateStaticDecl declSpecs decl = trace ("Don't know how to generate toplevel static decl: " ++ (show declSpecs) ++
-		"Decl: " ++ (show decl)) undefined
+generateStaticDecl _declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) = trace ("StaticDecl: " ++ name) $ return ()
+	where
+		name = extractDeclrName declr
+
+generateStaticDecl _declSpecs _decl@(CDecl _ _ _) = trace ("StaticDecl: " ++ "no name") $ return ()
 
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = define tp name fnargs bls
