@@ -32,10 +32,10 @@ data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD Ident | TOE CExpr | T
 
 data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | NoTypeSpec deriving (Show)
 
-data QualifiedType = QualifiedType TypeSpec TypeQualifiers
+data QualifiedType = QualifiedType TypeSpec TypeQualifiers deriving (Show)
 
-isNoTypeSpec :: TypeSpec -> Bool
-isNoTypeSpec NoTypeSpec = True
+isNoTypeSpec :: QualifiedType -> Bool
+isNoTypeSpec (QualifiedType NoTypeSpec _) = True
 isNoTypeSpec _ = False
 
 data TypeQualifiers = TypeQualifiers {
@@ -57,7 +57,7 @@ data DeclarationSpecs = DeclarationSpecs {
 } deriving (Show)
 
 emptyDeclarationSpec :: DeclarationSpecs
-emptyDeclarationSpec = DeclarationSpecs NoStorageSpec NoTypeSpec defaultTypeQualifiers [] [] [] []
+emptyDeclarationSpec = DeclarationSpecs NoStorageSpec (QualifiedType NoTypeSpec defaultTypeQualifiers) [] [] []
 
 globalDeclSpecDefaults :: DeclarationSpecs -> DeclarationSpecs
 globalDeclSpecDefaults ds = ds {
@@ -97,7 +97,7 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 		updateTypeSpec ds spec rest
 			| hasSpec = ds
 			| otherwise = ds { 
-				declType = declType',
+				declType = (QualifiedType declType' defaultTypeQualifiers),
 				declTypeNodes = n' : (declTypeNodes ds) 
 			}
 			where
@@ -114,7 +114,7 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 				parse (CFloatType n) = (ST Float, n)
 				parse (CBoolType n) = (ST Bool, n)
 				parse (CComplexType n) = trace ("What the hell is a ComplexType? " ++ (show n)) undefined
-				parse (CSUType u n) = (CT (CSU u), n)
+				parse (CSUType u n) = (CT (CSU u []), n)
 				parse (CEnumType e n) = (CT (E e), n)
 				parse (CTypeDef i n) = (CT (TD i), n)
 				parse (CTypeOfExpr e n) = (CT (TOE e), n)
@@ -160,11 +160,12 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 		-- of how to do it smarter:
 		updateTypeQual :: DeclarationSpecs -> [CTypeQual] -> DeclarationSpecs
 		updateTypeQual ds quals = ds {
-			declQualifiers = TypeQualifiers hasVolatile hasConst hasRestrict hasInline,
-			declQualifierNodes = map toNode typeQuals,
-			declAttributes = map (\ (CAttrQual a) -> a) attrQuals
+			declType = QualifiedType (justType $ declType ds) (TypeQualifiers hasVolatile hasConst hasRestrict hasInline),
+			declQualifierNodes = map toNode typeQuals
+			--,declAttributes = map (\ (CAttrQual a) -> a) attrQuals
 		}
 			where
+				justType (QualifiedType t q) = t
 				typeQuals = filter isTypeQual quals
 				attrQuals = filter (not.isTypeQual) quals
 

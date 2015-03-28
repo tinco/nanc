@@ -6,7 +6,7 @@ import Nanc.AST
 
 import Debug.Trace
 
-generateType :: TypeSpec -> Type
-generateType (ST Void) = VoidType
-generateType (ST SignedInt) = IntegerType 32
+generateType :: QualifiedType -> Type
+generateType (QualifiedType (ST Void) _) = VoidType
+generateType (QualifiedType (ST SignedInt) _) = IntegerType 32
 generateType t = trace ("Unimplemented type: " ++ (show t)) VoidType
