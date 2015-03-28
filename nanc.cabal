@@ -57,7 +57,7 @@ executable nanc
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.7, language-c, llvm-general >= 3.4.4.1, llvm-general-pure >= 3.4.4.0,
+  build-depends:       base >=4.6 && <4.7, language-c >= 0.4.7, llvm-general >= 3.4.4.1, llvm-general-pure >= 3.4.4.0,
                        containers, mtl >=2.2.1, transformers >=0.4.1.0
   
   -- Directories containing source files.
