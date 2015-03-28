@@ -25,11 +25,12 @@ main = do
 	withContext $ \x -> liftError $ withModuleFromAST x ast $ \m -> do
 		ir <- moduleLLVMAssembly m
 		putStrLn ir
+		return ()
 
 parseMyFile :: FilePath -> IO CTranslUnit
 parseMyFile input_file = do
-	preprocessed_file <- preprocess input_file
-	parse_result <- parseCFile (newGCC "gcc") Nothing [] preprocessed_file
+	--preprocessed_file <- preprocess input_file
+	parse_result <- parseCFile (newGCC "gcc") Nothing [] input_file --preprocessed_file
 	case parse_result of
 		Left parse_err -> error (show parse_err)
 		Right ast -> return ast

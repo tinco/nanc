@@ -12,6 +12,8 @@ import Nanc.CodeGenState
 import Nanc.AST
 
 import Nanc.IR.Types
+import Nanc.IR.Statement
+import Nanc.IR.Expression
 
 {-
  A module consists of a list of external declarations.
@@ -79,26 +81,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = define tp name fnargs bls
 			entryB <- addBlock entryBlockName
 			setBlock entryB
 			-- generate argument code here
-			generateStat stat
-
-generateStat :: CStat -> Codegen ()
-generateStat (CExpr expr _) = generateExpr (fromJust expr)
-generateStat (CReturn _expr _) = trace "Return" $ undefined
-generateStat (CCompound _ident items _) = mapM_ generateBlockItem items
-generateStat _d = undefined
-
-generateExpr :: CExpr -> Codegen ()
-generateExpr (CCall fn' args' _) = do
-	_args <- mapM generateExpr args'
-	_fn <- generateExpr fn'
-	-- call fn args
-	return ()
-
-generateExpr expr = trace ("encountered expr: " ++ (show expr)) undefined
-
-generateBlockItem :: CBlockItem -> Codegen ()
-generateBlockItem (CBlockStmt stat) = generateStat stat
-generateBlockItem _ = undefined
+			generateStatement stat
 
 extractDeclrName :: CDeclr -> String
 extractDeclrName (CDeclr ident _ _ _ _)= maybe "anonymous" (\ (Ident n _ _) -> n) ident
