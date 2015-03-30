@@ -3,6 +3,8 @@ module Nanc.IR.Statement where
 import Debug.Trace
 import Data.Maybe
 
+import Control.Monad
+
 import Language.C
 import Language.C.Data.Ident
 
@@ -16,10 +18,9 @@ import Nanc.IR.Expression
 import Nanc.IR.Instructions
 
 generateStatement :: CStat -> Codegen ()
-generateStatement (CExpr expr _) = do
-	generateExpression (fromJust expr)
-	return ()
-generateStatement (CReturn _expr _) = trace "Return" $ undefined
+generateStatement (CExpr expr _) = void $ generateExpression (fromJust expr)
+generateStatement (CReturn Nothing _)= void $ ret Nothing
+generateStatement (CReturn (Just expr) _) = void $ generateExpression expr >>= ret . Just
 generateStatement (CCompound _ident items _) = mapM_ generateBlockItem items
 generateStatement (CIf expr trueStat maybeElseStat _) = generateIfStatement expr trueStat maybeElseStat
 generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
@@ -27,7 +28,6 @@ generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefi
 generateBlockItem :: CBlockItem -> Codegen ()
 generateBlockItem (CBlockStmt stat) = generateStatement stat
 generateBlockItem _ = trace "unknown generate block item" $ undefined
-
 
 generateIfStatement :: CExpr -> CStat -> Maybe CStat -> Codegen ()
 generateIfStatement condition trueStat maybeElseStat = do

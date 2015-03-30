@@ -56,8 +56,8 @@ br val = terminator $ Do $ Br val []
 cbr :: Operand -> Name -> Name -> Codegen (Named Terminator)
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
 
-ret :: Operand -> Codegen (Named Terminator)
-ret val = terminator $ Do $ Ret (Just val) []
+ret :: Maybe Operand -> Codegen (Named Terminator)
+ret val = terminator $ Do $ Ret val []
 
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr double $ Call False CC.C [] (Right fn) (toArgs args) [] []
