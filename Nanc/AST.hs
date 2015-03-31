@@ -3,6 +3,7 @@ module Nanc.AST where
 import Data.Maybe
 
 import Language.C
+import Language.C.Data.Ident
 
 import Debug.Trace
 
@@ -30,7 +31,9 @@ data SimpleType =
 
 data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD Ident | TOE CExpr | TOT CDecl deriving (Show)
 
-data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | NoTypeSpec deriving (Show)
+data FunctionType = FunctionType QualifiedType [QualifiedType] deriving (Show)
+
+data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | NoTypeSpec deriving (Show)
 
 data QualifiedType = QualifiedType TypeSpec TypeQualifiers deriving (Show)
 
@@ -55,6 +58,37 @@ data DeclarationSpecs = DeclarationSpecs {
 	declTypeNodes :: [NodeInfo],
 	declQualifierNodes :: [NodeInfo]
 } deriving (Show)
+
+data Declaration = Declaration {
+	declarationName :: String,
+	declarationSpecs :: DeclarationSpecs,
+	declarationType :: QualifiedType
+} deriving (Show)
+
+buildDeclaration :: CDecl -> Declaration
+buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) _derivDeclrs _asmName attrs _),_,_)] _) =
+	trace ("Pretty declaration: " ++ name) $ Declaration {
+		declarationName = name,
+		declarationSpecs = buildDeclarationSpecs specs,
+		declarationType = undefined
+	}
+buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) _derivDeclrs _asmName attrs _),_,_)] _) =
+	trace "No name declaration" undefined
+
+{-
+
+This code produces an empty declarators list, it just has declarationspecs.
+Presumable we have to pluck the name from the CSU. Which obviously sucks.
+
+struct __darwin_pthread_handler_rec {
+    void (* __routine)(void *);
+    void * __arg;
+    struct __darwin_pthread_handler_rec * __next;
+}
+-}
+
+buildDeclaration decl@(CDecl specs declrs _) =
+	trace ("Weird declaration: " ++ (show $ declrs)) undefined
 
 emptyDeclarationSpec :: DeclarationSpecs
 emptyDeclarationSpec = DeclarationSpecs NoStorageSpec (QualifiedType NoTypeSpec defaultTypeQualifiers) [] [] []
@@ -191,7 +225,4 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 				toNode (CConstQual n) = n
 				toNode (CInlineQual n) = n
 
-data FunctionDeclarator = FunctionDeclarator {
-	functionName :: String,
-	functionReturnType :: QualifiedType
-}
+--

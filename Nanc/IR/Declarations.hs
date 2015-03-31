@@ -33,13 +33,13 @@ generateToplevelDecl :: CDecl -> Module ()
 generateToplevelDecl decl@(CDecl specs _dclrs _)
 	| isExtern = generateExtern declSpecs decl
 	| isTypedef = generateTypedef declSpecs decl
-	| isStatic = generateStaticDecl declSpecs decl
+	| isStatic = generateStaticDecl declaration
 	| otherwise = trace ("got unknown toplevel decl: " ++ (show declSpecs) ++
 		"Decl: " ++ (show decl)) undefined
 	where
 		declSpecs = globalDeclSpecDefaults $ buildDeclarationSpecs specs
 		storage = declStorage declSpecs
-		
+		declaration = buildDeclaration decl
 		isExtern = storage == Extern
 		isTypedef = storage == Typedef
 		isStatic = storage == Static
@@ -58,16 +58,16 @@ generateTypedef _declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) =
 	where
 		name = extractDeclrName declr
 
-generateStaticDecl :: DeclarationSpecs -> CDecl -> Module ()
-generateStaticDecl declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) = addDefn def
+-- we really need to transform this whole declarationspec hell to a neat ast.
+generateStaticDecl :: Declaration -> Module ()
+generateStaticDecl decl = addDefn def
 	where
-		def = AST.GlobalDefinition $ AST.globalVariableDefaults {
-			Global.name = AST.Name $ extractDeclrName declr,
-			Global.type' = qualifiedTypeToType $ declType declSpecs
+		-- This is crashing on funopen, which is a function so it's not a global variable at
+		-- all.. These staticdecls can be fundefs.. why?
+		def = trace ("Making a global var: " ++ (show decl)) $ AST.GlobalDefinition $ AST.globalVariableDefaults {
+			Global.name = AST.Name $ declarationName decl,
+			Global.type' = qualifiedTypeToType $ declType $ declarationSpecs decl
 		}
-
-generateStaticDecl _declSpecs _decl@(CDecl _ _ _) =
-	trace ("StaticDecl: " ++ "no name") $ return ()
 
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) =
