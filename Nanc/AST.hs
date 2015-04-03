@@ -67,9 +67,10 @@ data Declaration = Declaration {
 
 buildDeclaration :: CDecl -> Declaration
 buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) _derivDeclrs _asmName attrs _),_,_)] _) =
-	trace ("Pretty declaration: " ++ name) $ Declaration {
+	Declaration {
 		declarationName = name,
 		declarationSpecs = buildDeclarationSpecs specs,
+		-- something is not right here, we should distinguish between functions and other types.
 		declarationType = declType $ buildDeclarationSpecs specs
 	}
 buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) _derivDeclrs _asmName attrs _),_,_)] _) =
