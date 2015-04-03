@@ -33,7 +33,7 @@ data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD Ident | TOE CExpr | T
 
 data FunctionType = FunctionType QualifiedType [QualifiedType] deriving (Show)
 
-data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | NoTypeSpec deriving (Show)
+data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | NoTypeSpec | TypeType deriving (Show)
 
 data QualifiedType = QualifiedType TypeSpec TypeQualifiers deriving (Show)
 
@@ -70,25 +70,25 @@ buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) _derivDeclr
 	trace ("Pretty declaration: " ++ name) $ Declaration {
 		declarationName = name,
 		declarationSpecs = buildDeclarationSpecs specs,
-		declarationType = undefined
+		declarationType = declType $ buildDeclarationSpecs specs
 	}
 buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) _derivDeclrs _asmName attrs _),_,_)] _) =
 	trace "No name declaration" undefined
 
-{-
-
-This code produces an empty declarators list, it just has declarationspecs.
-Presumable we have to pluck the name from the CSU. Which obviously sucks.
-
-struct __darwin_pthread_handler_rec {
-    void (* __routine)(void *);
-    void * __arg;
-    struct __darwin_pthread_handler_rec * __next;
-}
--}
-
-buildDeclaration decl@(CDecl specs declrs _) =
-	trace ("Weird declaration: " ++ (show $ declrs)) undefined
+-- Catch some other weird declarations here
+buildDeclaration decl@(CDecl specs declrs _)
+	| isStructDefinition dType = Declaration {
+		declarationName = structName dType,
+		declarationSpecs = declSpecs,
+		declarationType = QualifiedType TypeType defaultTypeQualifiers 
+	}
+	| otherwise = trace ("Weird declaration: " ++ (show $ specs)) undefined
+	where
+		isStructDefinition (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident _ _ _)) _ _ _ ) _)) _) = True
+		isStructDefinition _ = False
+		structName (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident name _ _)) _ _ _ ) _)) _) = name
+		declSpecs = buildDeclarationSpecs specs
+		dType = declType declSpecs
 
 emptyDeclarationSpec :: DeclarationSpecs
 emptyDeclarationSpec = DeclarationSpecs NoStorageSpec (QualifiedType NoTypeSpec defaultTypeQualifiers) [] [] []
