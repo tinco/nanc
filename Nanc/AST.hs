@@ -41,6 +41,10 @@ isNoTypeSpec :: QualifiedType -> Bool
 isNoTypeSpec (QualifiedType NoTypeSpec _) = True
 isNoTypeSpec _ = False
 
+isFunctionType :: QualifiedType -> Bool
+isFunctionType (QualifiedType (FT _) _) = True
+isFunctionType _ = False
+
 data TypeQualifiers = TypeQualifiers {
 	typeIsVolatile :: Bool,
 	typeIsConst :: Bool,
@@ -94,13 +98,19 @@ buildDeclaration decl@(CDecl specs declrs _)
 emptyDeclarationSpec :: DeclarationSpecs
 emptyDeclarationSpec = DeclarationSpecs NoStorageSpec (QualifiedType NoTypeSpec defaultTypeQualifiers) [] [] []
 
-globalDeclSpecDefaults :: DeclarationSpecs -> DeclarationSpecs
-globalDeclSpecDefaults ds = ds {
-		declStorage = declStorage'
+globalDeclarationDefaults :: Declaration -> Declaration
+globalDeclarationDefaults declaration = declaration {
+		declarationSpecs = ds {
+			declStorage = declStorage'
+		}
 	}
 	where
-		declStorage' | declStorage ds == NoStorageSpec = Static
-		             | otherwise = declStorage ds
+		ds = declarationSpecs declaration
+		declStorage'
+		  -- TODO: are there other storage types for functions? if so this is wrong
+		  | isFunctionType $ declarationType declaration = Extern 
+		  | declStorage ds == NoStorageSpec = Static
+		  | otherwise = declStorage ds
 
 buildDeclarationSpecs :: [CDeclSpec] -> DeclarationSpecs
 buildDeclarationSpecs specs = build emptyDeclarationSpec specs

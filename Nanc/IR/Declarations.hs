@@ -30,40 +30,34 @@ at most one storage class specifier is allowed per declaration
 the elements of the non-empty init-declarator-list are of the form (Just declr, init?, Nothing). The declarator declr has to be present and non-abstract and the initialization expression is optional.
 -}
 generateToplevelDecl :: CDecl -> Module ()
-generateToplevelDecl decl@(CDecl specs _dclrs _)
-	| isExtern = generateExtern declSpecs decl
-	| isTypedef = generateTypedef declSpecs decl
+generateToplevelDecl decl
+	| isExtern = generateExtern declaration
+	| isTypedef = generateTypedef declaration
 	| isStatic = generateStaticDecl declaration
-	| otherwise = trace ("got unknown toplevel decl: " ++ (show declSpecs) ++
-		"Decl: " ++ (show decl)) undefined
+	| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
 	where
-		declSpecs = globalDeclSpecDefaults $ buildDeclarationSpecs specs
-		storage = declStorage declSpecs
-		declaration = buildDeclaration decl
+		declaration = globalDeclarationDefaults $ buildDeclaration decl
+		storage = declStorage $ declarationSpecs declaration
 		isExtern = storage == Extern
 		isTypedef = storage == Typedef
 		isStatic = storage == Static
 
-generateExtern :: DeclarationSpecs -> CDecl -> Module ()
-generateExtern _declSpecs _decl@(CDecl _ [(Just declr,Nothing,Nothing)] _)
-	| printf = trace ("ExternDecl: " ++ name ++ " " ++ (show declr)) $ undefined
-	| otherwise = return ()
+generateExtern :: Declaration -> Module ()
+generateExtern declaration =
+	trace ("ExternDecl: " ++ name ++ " " ++ (show declaration)) $ return ()
 	where
-		name = extractDeclrName declr
-		printf = name == "printf"
+		name = declarationName declaration
 
-generateTypedef :: DeclarationSpecs -> CDecl -> Module ()
-generateTypedef _declSpecs _decl@(CDecl _ [(Just declr,_,_)] _) =
+generateTypedef :: Declaration -> Module ()
+generateTypedef declaration =
 	trace ("Typedef: " ++ name) $ return ()
 	where
-		name = extractDeclrName declr
+		name = declarationName declaration
 
 -- we really need to transform this whole declarationspec hell to a neat ast.
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = addDefn def
 	where
-		-- This is crashing on funopen, which is a function so it's not a global variable at
-		-- all.. These staticdecls can be fundefs.. why?
 		def = trace ("Making a global var: " ++ (show decl)) $ AST.GlobalDefinition $ AST.globalVariableDefaults {
 			Global.name = AST.Name $ declarationName decl,
 			Global.type' = qualifiedTypeToType $ declType $ declarationSpecs decl
