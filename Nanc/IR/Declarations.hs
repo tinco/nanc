@@ -11,6 +11,7 @@ import qualified LLVM.General.AST.Global as Global
 
 import Nanc.CodeGenState
 import Nanc.AST
+import Nanc.AST.Declarations
 
 import Nanc.IR.Types
 import Nanc.IR.Statement
