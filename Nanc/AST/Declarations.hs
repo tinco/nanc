@@ -41,7 +41,19 @@ buildDeclaration decl@(CDecl specs declrs _)
 		dType = declType declSpecs
 
 buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
-buildDerivedType qt [] = qt
+buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
+	where
+		buildDerivedType' qt [] = qt
+		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = undefined
+
+-- TODO: The next step here is to extract the typequalifier parser from the declspec builder
+-- so we can invoke it here to extract the type qualifiers.
+
+{-
+  CPtrDeclr [CTypeQualifier a] a	= Pointer declarator CPtrDeclr tyquals declr
+  CArrDeclr [CTypeQualifier a] (CArraySize a) a = Array declarator CArrDeclr declr tyquals size-expr?
+  CFunDeclr (Either [Ident] ([CDeclaration a], Bool)) [CAttribute a] a = Function declarator CFunDeclr declr (old-style-params | new-style-params) c-attrs
+-}
 
 emptyDeclarationSpec :: DeclarationSpecs
 emptyDeclarationSpec = DeclarationSpecs NoStorageSpec (QualifiedType NoTypeSpec defaultTypeQualifiers) [] [] []
