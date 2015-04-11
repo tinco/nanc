@@ -22,11 +22,36 @@ buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) derivedDecl
 	where
 		ds = buildDeclarationSpecs specs
 
-buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) derivedDeclarators _asmName attrs _),_,_)] _) =
+{-
+Weird declaration: 
+CDecl [
+	CTypeSpec (CCharType (NodeInfo ))]
+		[(Just (CDeclr Nothing 
+			[CPtrDeclr [CRestrQual (NodeInfo)] (NodeInfo))] Nothing []  NodeInfo)
+nanc: Prelude.undefined
+-}
+{-}
+buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) [] _asmName attrs _),_,_)] _) =
 	Declaration {
 		declarationName = "AnonymousDeclaration",
 		declarationSpecs = ds,
-		declarationType = buildDerivedType (declType ds) derivedDeclarators
+		declarationType = declType ds
+	}
+	where
+		ds = buildDeclarationSpecs specs
+
+-}
+
+-- TODO: We need to catch struct definitions sooner so they don't get swallowed by the anonymous
+-- declaration pattern matcher. Struct definitions are f'in stupid.
+
+{- CDecl [CTypeSpec (CTypeDef (Ident "size_t" 213839698))] [] -}
+-- This is a declaration with just a typespecifier and no extra information
+buildDeclaration (CDecl specs [] _) =
+	Declaration {
+		declarationName = "AnonymousDeclaration",
+		declarationSpecs = ds,
+		declarationType = declType ds
 	}
 	where
 		ds = buildDeclarationSpecs specs
@@ -50,15 +75,14 @@ buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
 buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 	where
 		buildDerivedType' qt [] = qt
-		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = buildDerivedType (QualifiedType (Ptr qt) (fst $ buildTypeQualifiers qs)) ddrs
-		buildDerivedType' qt (funDecl@(CFunDeclr _ _ _):ddrs) = buildDerivedType (buildFunType qt funDecl) ddrs
-		buildDerivedType' _ (declr:ddrs) = trace ("Unknown declr: " ++ show declr) undefined
+		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = buildDerivedType' (QualifiedType (Ptr qt) (fst $ buildTypeQualifiers qs)) ddrs
+		buildDerivedType' qt (funDecl@(CFunDeclr _ _ _):ddrs) = buildDerivedType' (buildFunType qt funDecl) ddrs
+		buildDerivedType' qt (arrDecl@(CArrDeclr _ _ _):ddrs) = buildDerivedType' (buildArrType qt arrDecl) ddrs
 
 		buildFunType qt (CFunDeclr (Left _) _ _) = trace ("Old style Function declarator: " ++ show ddrs) undefined
 		buildFunType qt (CFunDeclr (Right (decls, _mysteriousBool)) _ _) = QualifiedType (FT (FunctionType qt (map (declarationType.buildDeclaration) decls))) defaultTypeQualifiers
 
--- TODO: The next step here is to extract the typequalifier parser from the declspec builder
--- so we can invoke it here to extract the type qualifiers.
+		buildArrType qt (CArrDeclr qs _ _) = trace "ArrDeclr not implemented" (QualifiedType (Arr 0 qt) (fst $ buildTypeQualifiers qs))
 
 {-
   CPtrDeclr [CTypeQualifier a] a	= Pointer declarator CPtrDeclr tyquals declr
