@@ -45,6 +45,9 @@ isFunctionType :: QualifiedType -> Bool
 isFunctionType (QualifiedType (FT _) _) = True
 isFunctionType _ = False
 
+qualifiedTypeType :: QualifiedType -> TypeSpec
+qualifiedTypeType (QualifiedType t _) = t
+
 data TypeQualifiers = TypeQualifiers {
 	typeIsVolatile :: Bool,
 	typeIsConst :: Bool,

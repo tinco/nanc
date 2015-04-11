@@ -22,8 +22,14 @@ buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) derivedDecl
 	where
 		ds = buildDeclarationSpecs specs
 
-buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) _derivDeclrs _asmName attrs _),_,_)] _) =
-	trace "No name declaration" undefined
+buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) derivedDeclarators _asmName attrs _),_,_)] _) =
+	Declaration {
+		declarationName = "AnonymousDeclaration",
+		declarationSpecs = ds,
+		declarationType = buildDerivedType (declType ds) derivedDeclarators
+	}
+	where
+		ds = buildDeclarationSpecs specs
 
 -- Catch some other weird declarations here
 buildDeclaration decl@(CDecl specs declrs _)
@@ -32,7 +38,7 @@ buildDeclaration decl@(CDecl specs declrs _)
 		declarationSpecs = declSpecs,
 		declarationType = QualifiedType TypeType defaultTypeQualifiers 
 	}
-	| otherwise = trace ("Weird declaration: " ++ (show $ specs)) undefined
+	| otherwise = trace ("Weird declaration: " ++ (show $ decl)) undefined
 	where
 		isStructDefinition (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident _ _ _)) _ _ _ ) _)) _) = True
 		isStructDefinition _ = False
@@ -44,7 +50,12 @@ buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
 buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 	where
 		buildDerivedType' qt [] = qt
-		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = undefined
+		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = buildDerivedType (QualifiedType (Ptr qt) (fst $ buildTypeQualifiers qs)) ddrs
+		buildDerivedType' qt (funDecl@(CFunDeclr _ _ _):ddrs) = buildDerivedType (buildFunType qt funDecl) ddrs
+		buildDerivedType' _ (declr:ddrs) = trace ("Unknown declr: " ++ show declr) undefined
+
+		buildFunType qt (CFunDeclr (Left _) _ _) = trace ("Old style Function declarator: " ++ show ddrs) undefined
+		buildFunType qt (CFunDeclr (Right (decls, _mysteriousBool)) _ _) = QualifiedType (FT (FunctionType qt (map (declarationType.buildDeclaration) decls))) defaultTypeQualifiers
 
 -- TODO: The next step here is to extract the typequalifier parser from the declspec builder
 -- so we can invoke it here to extract the type qualifiers.
@@ -164,35 +175,41 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 		-- This function is going to perform horribly, I'm too tired to think
 		-- of how to do it smarter:
 		updateTypeQual :: DeclarationSpecs -> [CTypeQual] -> DeclarationSpecs
-		updateTypeQual ds quals = ds {
-			declType = QualifiedType (justType $ declType ds) (TypeQualifiers hasVolatile hasConst hasRestrict hasInline),
-			declQualifierNodes = map toNode typeQuals
-			--,declAttributes = map (\ (CAttrQual a) -> a) attrQuals
-		}
+		updateTypeQual ds quals =
+			ds {
+				declType = QualifiedType (qualifiedTypeType $ declType ds) typeQualifiers,
+				declQualifierNodes = qNodes
+				--,declAttributes = map (\ (CAttrQual a) -> a) attrQuals
+			}
 			where
-				justType (QualifiedType t q) = t
-				typeQuals = filter isTypeQual quals
-				attrQuals = filter (not.isTypeQual) quals
+				(typeQualifiers, qNodes) = buildTypeQualifiers quals
 
-				hasVolatile = any isVolatileQ typeQuals
-				hasConst = any isConstQ typeQuals
-				hasRestrict = any isRestrictQ typeQuals
-				hasInline = any isInlineQ typeQuals
+buildTypeQualifiers :: [CTypeQual] -> (TypeQualifiers, [NodeInfo])
+buildTypeQualifiers quals = 
+	(TypeQualifiers hasVolatile hasConst hasRestrict hasInline, map toNode typeQuals)
+	where
+		typeQuals = filter isTypeQual quals
+		attrQuals = filter (not.isTypeQual) quals
 
-				isTypeQual (CAttrQual _) = False
-				isTypeQual _ = True
+		hasVolatile = any isVolatileQ typeQuals
+		hasConst = any isConstQ typeQuals
+		hasRestrict = any isRestrictQ typeQuals
+		hasInline = any isInlineQ typeQuals
 
-				isVolatileQ (CVolatQual _) = True
-				isVolatileQ _ = False
-				isRestrictQ (CRestrQual _) = True
-				isRestrictQ _ = False
-				isConstQ (CConstQual _) = True
-				isConstQ _ = False
-				isInlineQ (CInlineQual _) = True
-				isInlineQ _ = False
+		isTypeQual (CAttrQual _) = False
+		isTypeQual _ = True
 
-				toNode (CVolatQual n) = n
-				toNode (CRestrQual n) = n
-				toNode (CConstQual n) = n
-				toNode (CInlineQual n) = n
+		isVolatileQ (CVolatQual _) = True
+		isVolatileQ _ = False
+		isRestrictQ (CRestrQual _) = True
+		isRestrictQ _ = False
+		isConstQ (CConstQual _) = True
+		isConstQ _ = False
+		isInlineQ (CInlineQual _) = True
+		isInlineQ _ = False
+
+		toNode (CVolatQual n) = n
+		toNode (CRestrQual n) = n
+		toNode (CConstQual n) = n
+		toNode (CInlineQual n) = n
 
