@@ -2,6 +2,7 @@ module Nanc.AST.Declarations where
 
 import Debug.Trace
 import Data.Maybe
+import Control.Applicative
 
 import Language.C
 import Language.C.Data.Ident
@@ -13,7 +14,7 @@ import Nanc.AST
  -}
 
 buildDeclaration :: CDecl -> Declaration
-buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) derivedDeclarators _asmName attrs _),_,_)] _) =
+buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmName attrs _),_,_)] _) =
 	Declaration {
 		declarationName = name,
 		declarationSpecs = ds,
@@ -21,56 +22,24 @@ buildDeclaration (CDecl specs [(Just (CDeclr (Just (Ident name _ _)) derivedDecl
 	}
 	where
 		ds = buildDeclarationSpecs specs
-
-{-
-Weird declaration: 
-CDecl [
-	CTypeSpec (CCharType (NodeInfo ))]
-		[(Just (CDeclr Nothing 
-			[CPtrDeclr [CRestrQual (NodeInfo)] (NodeInfo))] Nothing []  NodeInfo)
-nanc: Prelude.undefined
--}
-{-}
-buildDeclaration (CDecl specs [(Just (CDeclr (Nothing) [] _asmName attrs _),_,_)] _) =
-	Declaration {
-		declarationName = "AnonymousDeclaration",
-		declarationSpecs = ds,
-		declarationType = declType ds
-	}
-	where
-		ds = buildDeclarationSpecs specs
-
--}
-
--- TODO: We need to catch struct definitions sooner so they don't get swallowed by the anonymous
--- declaration pattern matcher. Struct definitions are f'in stupid.
+		name = fromMaybe "AnonymousDeclaration" (identToString <$> maybeName) 
 
 {- CDecl [CTypeSpec (CTypeDef (Ident "size_t" 213839698))] [] -}
 -- This is a declaration with just a typespecifier and no extra information
-buildDeclaration (CDecl specs [] _) =
+buildDeclaration decl@(CDecl specs [] _) =
 	Declaration {
-		declarationName = "AnonymousDeclaration",
+		declarationName = name,
 		declarationSpecs = ds,
 		declarationType = declType ds
 	}
 	where
 		ds = buildDeclarationSpecs specs
+		name = head $ catMaybes [structName (declType ds), Just "AnonymousDeclaration"]
+		structName (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident name _ _)) _ _ _) _)) _) = Just name
+		structName _ = Nothing
 
--- Catch some other weird declarations here
-buildDeclaration decl@(CDecl specs declrs _)
-	| isStructDefinition dType = Declaration {
-		declarationName = structName dType,
-		declarationSpecs = declSpecs,
-		declarationType = QualifiedType TypeType defaultTypeQualifiers 
-	}
-	| otherwise = trace ("Weird declaration: " ++ (show $ decl)) undefined
-	where
-		isStructDefinition (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident _ _ _)) _ _ _ ) _)) _) = True
-		isStructDefinition _ = False
-		structName (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident name _ _)) _ _ _ ) _)) _) = name
-		declSpecs = buildDeclarationSpecs specs
-		dType = declType declSpecs
-
+buildDeclaration decl = trace ("Weird declaration: " ++ (show $ decl)) undefined
+	
 buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
 buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 	where
