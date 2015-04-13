@@ -163,3 +163,10 @@ assign :: String -> Operand -> Codegen ()
 assign var x = do
 	lcls <- gets symtab
 	modify $ \s -> s { symtab = [(var, x)] ++ lcls }
+
+getvar :: String -> Codegen Operand
+getvar var = do
+  syms <- gets symtab
+  case lookup var syms of
+    Just x  -> return x
+    Nothing -> error $ "Local variable not in scope: " ++ show var
