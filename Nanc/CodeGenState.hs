@@ -23,7 +23,7 @@ type SymbolTable = [(String, Operand)]
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
 	blocks       :: Map.Map Name BlockState, -- Blocks for function
-	symtab       :: SymbolTable,             -- Function scope symbol table
+	symboltables :: [SymbolTable],             -- Function scope symbol table
 	blockCount   :: Int,                     -- Count of basic blocks
 	count        :: Word,                    -- Count of unnamed instructions
 	names        :: Names                    -- Name Supply
@@ -161,12 +161,18 @@ externf n t = ConstantOperand . C.GlobalReference t $ n
 
 assign :: String -> Operand -> Codegen ()
 assign var x = do
-	lcls <- gets symtab
-	modify $ \s -> s { symtab = [(var, x)] ++ lcls }
+	symtabs <- gets symboltables
+	modify $ \s -> s { symboltables = ([(var, x)] ++ (head symtabs)) : (tail symtabs) }
+
+symbolLookup :: String -> [SymbolTable] -> Maybe Operand
+symbolLookup name (t:rest) = case lookup name t of
+	Just operand -> Just operand
+	Nothing -> symbolLookup name rest
+symbolLookup _ [] = Nothing
 
 getvar :: String -> Codegen Operand
 getvar var = do
-  syms <- gets symtab
-  case lookup var syms of
+  symtabs <- gets symboltables
+  case symbolLookup var symtabs of
     Just x  -> return x
     Nothing -> error $ "Local variable not in scope: " ++ show var

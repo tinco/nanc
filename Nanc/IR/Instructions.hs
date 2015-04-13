@@ -13,13 +13,6 @@ import Nanc.CodeGenState
 double :: Type
 double = FloatingPointType 64 IEEE
 
-getvar :: String -> Codegen Operand
-getvar var = do
-	syms <- gets symtab
-	case lookup var syms of
-		Just x  -> return x
-		Nothing -> error $ "Local variable not in scope: " ++ show var
-
 instr :: Type -> Instruction -> Codegen Operand
 instr t ins = do
 	n   <- fresh
