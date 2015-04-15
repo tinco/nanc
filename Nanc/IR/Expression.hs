@@ -21,6 +21,5 @@ generateExpression (CCall fn' args' _) = do
 	return $ trace "Generating expression: " undefined
 
 -- 	CVar (Ident "__swbuf" 253143745 (NodeInfo ("/usr/include/stdio.h": line 352) (("/usr/include/stdio.h": line 352),7) (Name {nameId = 1455}))) (NodeInfo ("/usr/include/stdio.h": line 352) (("/usr/include/stdio.h": line 352),7) (Name {nameId = 1456}))
-generateExpression (CVar (Ident name _ _) _) = trace ("Variable reference: " ++ (show name)) undefined
-
+generateExpression (CVar (Ident name _ _) _) = getvar name
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined

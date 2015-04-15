@@ -23,7 +23,7 @@ type SymbolTable = [(String, Operand)]
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
 	blocks       :: Map.Map Name BlockState, -- Blocks for function
-	symboltables :: [SymbolTable],             -- Function scope symbol table
+	symboltables :: [SymbolTable],           -- Function scope symbol table
 	blockCount   :: Int,                     -- Count of basic blocks
 	count        :: Word,                    -- Count of unnamed instructions
 	names        :: Names                    -- Name Supply

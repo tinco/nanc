@@ -45,7 +45,7 @@ generateToplevelDecl decl
 
 generateExtern :: Declaration -> Module ()
 generateExtern declaration =
-	trace ("ExternDecl: " ++ name ++ " " ++ (show declaration)) $ return ()
+	trace ("ExternDecl: " ++ name) $ return ()
 	where
 		name = declarationName declaration
 
@@ -59,7 +59,7 @@ generateTypedef declaration =
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = addDefn def
 	where
-		def = trace ("Making a global var: " ++ (show decl)) $ AST.GlobalDefinition $ AST.globalVariableDefaults {
+		def = trace ("Making a global var: " ++ (show $ declarationName decl)) $ AST.GlobalDefinition $ AST.globalVariableDefaults {
 			Global.name = AST.Name $ declarationName decl,
 			Global.type' = qualifiedTypeToType $ declType $ declarationSpecs decl
 		}
