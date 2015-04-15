@@ -50,8 +50,8 @@ newtype Module a = Module {
 runModule :: AST.Module -> Module a -> AST.Module
 runModule = flip (execState . unModule)
 
-execCodegen :: Codegen a -> CodegenState
-execCodegen m = execState (runCodegen m) emptyCodegen
+execCodegen :: CodegenState -> Codegen a -> CodegenState
+execCodegen initial m = execState (runCodegen m) initial
 
 emptyModule :: String -> AST.Module
 emptyModule label = defaultModule { moduleName = label }

@@ -3,6 +3,8 @@ module Nanc.IR.Declarations where
 import Debug.Trace
 import Data.Maybe
 
+import Control.Monad.State
+
 import Language.C
 import Language.C.Data.Ident
 
@@ -55,7 +57,6 @@ generateTypedef declaration =
 	where
 		name = declarationName declaration
 
--- we really need to transform this whole declarationspec hell to a neat ast.
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = addDefn def
 	where
@@ -64,16 +65,27 @@ generateStaticDecl decl = addDefn def
 			Global.type' = qualifiedTypeToType $ declType $ declarationSpecs decl
 		}
 
+buildGlobalSymbolTable :: [AST.Definition] -> [(String, AST.Operand)]
+-- TODO: for each global definition generate a symbol table entry
+-- for example: ConstantOperand . C.GlobalReference name
+buildGlobalSymbolTable defs = []
+
 generateFunDef :: CFunDef -> Module ()
-generateFunDef (CFunDef specs declr _decls stat _) =
-	define tp name fnargs bls
+generateFunDef (CFunDef specs declr _decls stat _) = do
+		defs <- gets AST.moduleDefinitions
+		define tp name fnargs (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
 		tp = qualifiedTypeToType $ declType declSpecs
 		name = extractDeclrName declr
 		_args = []
 		fnargs = []
-		bls = createBlocks $ execCodegen $ do
+
+		initialCodeGenState ds = emptyCodegen {
+			symboltables = [buildGlobalSymbolTable ds]
+		}
+
+		bls ds = createBlocks $ execCodegen (initialCodeGenState ds) $ do
 			entryB <- addBlock entryBlockName
 			setBlock entryB
 			-- generate argument code here
