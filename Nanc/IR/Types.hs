@@ -1,6 +1,7 @@
 module Nanc.IR.Types where
 
 import LLVM.General.AST hiding (Module)
+import LLVM.General.AST.AddrSpace
 
 import Nanc.AST
 
@@ -9,6 +10,7 @@ import Debug.Trace
 qualifiedTypeToType :: QualifiedType -> Type
 qualifiedTypeToType (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType (QualifiedType (CT t) qs) = complexTypeToType t qs
+qualifiedTypeToType (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType qt) (AddrSpace 0)
 qualifiedTypeToType (QualifiedType NoTypeSpec _) = IntegerType 32
 qualifiedTypeToType qt = trace ("Unimplemented type: " ++ show qt) undefined
 

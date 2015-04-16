@@ -49,7 +49,10 @@ buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 		buildDerivedType' qt (arrDecl@(CArrDeclr _ _ _):ddrs) = buildDerivedType' (buildArrType qt arrDecl) ddrs
 
 		buildFunType qt (CFunDeclr (Left _) _ _) = trace ("Old style Function declarator: " ++ show ddrs) undefined
-		buildFunType qt (CFunDeclr (Right (decls, _mysteriousBool)) _ _) = QualifiedType (FT (FunctionType qt (map (declarationType.buildDeclaration) decls))) defaultTypeQualifiers
+		buildFunType qt (CFunDeclr (Right (decls, _mysteriousBool)) _ _) =
+			QualifiedType (FT (FunctionType qt args)) defaultTypeQualifiers
+				where
+					args = map (\ d -> (declarationType d, declarationName d)) $ map buildDeclaration decls
 
 		buildArrType qt (CArrDeclr qs _ _) = trace "ArrDeclr not implemented" (QualifiedType (Arr 0 qt) (fst $ buildTypeQualifiers qs))
 

@@ -31,7 +31,7 @@ data SimpleType =
 
 data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD Ident | TOE CExpr | TOT CDecl deriving (Show)
 
-data FunctionType = FunctionType QualifiedType [QualifiedType] deriving (Show)
+data FunctionType = FunctionType QualifiedType [(QualifiedType, String)] deriving (Show)
 
 data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | Arr Int QualifiedType | NoTypeSpec | TypeType deriving (Show)
 

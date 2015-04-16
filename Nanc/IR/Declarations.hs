@@ -48,10 +48,13 @@ generateToplevelDecl decl
 		isStatic = storage == Static
 
 generateExtern :: Declaration -> Module ()
-generateExtern declaration =
-	trace ("ExternDecl: " ++ name) $ return ()
+generateExtern declaration = external retty name argtys
 	where
+		fType = qualifiedTypeType $ declarationType declaration
 		name = declarationName declaration
+		fTypeToTuple (FT (FunctionType rt argts)) = (qualifiedTypeToType rt, map (\ (t,n) -> (qualifiedTypeToType t, AST.Name n)) argts) 
+		fTypeToTuple other = trace ("Other: " ++ show other) undefined
+		(retty, argtys) = fTypeToTuple fType
 
 generateTypedef :: Declaration -> Module ()
 generateTypedef declaration =
@@ -62,7 +65,7 @@ generateTypedef declaration =
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = addDefn def
 	where
-		def = trace ("Making a global var: " ++ (show $ declarationName decl)) $ AST.GlobalDefinition $ AST.globalVariableDefaults {
+		def = AST.GlobalDefinition $ AST.globalVariableDefaults {
 			name = AST.Name $ declarationName decl,
 			type' = qualifiedTypeToType $ declType $ declarationSpecs decl
 		}
