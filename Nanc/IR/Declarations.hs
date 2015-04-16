@@ -9,7 +9,9 @@ import Language.C
 import Language.C.Data.Ident
 
 import qualified LLVM.General.AST as AST
-import qualified LLVM.General.AST.Global as Global
+import LLVM.General.AST.Global
+import LLVM.General.AST.Operand
+import qualified LLVM.General.AST.Constant as C
 
 import Nanc.CodeGenState
 import Nanc.AST
@@ -61,14 +63,31 @@ generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = addDefn def
 	where
 		def = trace ("Making a global var: " ++ (show $ declarationName decl)) $ AST.GlobalDefinition $ AST.globalVariableDefaults {
-			Global.name = AST.Name $ declarationName decl,
-			Global.type' = qualifiedTypeToType $ declType $ declarationSpecs decl
+			name = AST.Name $ declarationName decl,
+			type' = qualifiedTypeToType $ declType $ declarationSpecs decl
 		}
 
 buildGlobalSymbolTable :: [AST.Definition] -> [(String, AST.Operand)]
 -- TODO: for each global definition generate a symbol table entry
 -- for example: ConstantOperand . C.GlobalReference name
-buildGlobalSymbolTable defs = []
+buildGlobalSymbolTable [] = []
+buildGlobalSymbolTable ((AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
+	where
+		b :: Global -> (String, AST.Operand)
+		b (GlobalVariable n@(AST.Name name) _ _ _ _ _ _ t _ _ _) = (name, ConstantOperand $ C.GlobalReference t n)
+		b (GlobalAlias (AST.Name name) _ _ _ _) = trace ("unsupported global alias: " ++ name) (name, undefined)
+		b (Function _ _ _ _ t n@(AST.Name name) _ _ _ _ _ _) = (name, ConstantOperand $ C.GlobalReference t n)
+{- GlobalVariable Name Linkage Visibility Bool AddrSpace Bool Bool Type (Maybe Constant) (Maybe String) Word32	
+   GlobalAlias Name Linkage Visibility Type Constant	
+   Function Linkage Visibility CallingConvention [ParameterAttribute] Type Name ([Parameter], Bool) [FunctionAttribute] (Maybe String) Word32 (Maybe String) [BasicBlock] -}
+
+-- for now skip over typedefs in symboltable
+buildGlobalSymbolTable ((AST.TypeDefinition (AST.Name _n) _maybeType):rest) = buildGlobalSymbolTable rest
+{- GlobalDefinition Global	 
+   TypeDefinition Name (Maybe Type)	 
+   MetadataNodeDefinition MetadataNodeID [Maybe Operand]	 
+   NamedMetadataDefinition String [MetadataNodeID]	 
+   ModuleInlineAssembly String -}
 
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = do
