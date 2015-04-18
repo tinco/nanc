@@ -36,7 +36,8 @@ the elements of the non-empty init-declarator-list are of the form (Just declr, 
 -}
 generateToplevelDecl :: CDecl -> Module ()
 generateToplevelDecl decl
-	| isExtern = generateExtern declaration
+	| isExtern && isFunction = generateExternFunction declaration
+	| isExtern = generateExternVariable declaration
 	| isTypedef = generateTypedef declaration
 	| isStatic = generateStaticDecl declaration
 	| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
@@ -46,33 +47,42 @@ generateToplevelDecl decl
 		isExtern = storage == Extern
 		isTypedef = storage == Typedef
 		isStatic = storage == Static
+		isFunction = isFunctionType $ declarationType declaration
 
-generateExtern :: Declaration -> Module ()
-generateExtern declaration = external retty name argtys
+generateExternFunction :: Declaration -> Module ()
+generateExternFunction declaration = do
+		defs <- gets AST.moduleDefinitions
+		let fTypeToTuple (FT (FunctionType rt argts)) = (qualifiedTypeToType defs rt, map (\ (t,n) -> (qualifiedTypeToType defs t, AST.Name n)) argts) 
+		let (retty, argtys) = fTypeToTuple fType
+		external retty name argtys
 	where
 		fType = qualifiedTypeType $ declarationType declaration
 		name = declarationName declaration
-		fTypeToTuple (FT (FunctionType rt argts)) = (qualifiedTypeToType rt, map (\ (t,n) -> (qualifiedTypeToType t, AST.Name n)) argts) 
-		fTypeToTuple other = trace ("Other: " ++ show other) undefined
-		(retty, argtys) = fTypeToTuple fType
+	
+generateExternVariable :: Declaration -> Module ()
+generateExternVariable declaration = trace ("Non function extern: " ++ (show $ declarationName declaration)) $ return ()
 
 generateTypedef :: Declaration -> Module ()
-generateTypedef declaration =
-	trace ("Typedef: " ++ name) $ return ()
+generateTypedef declaration = do
+		defs <- gets AST.moduleDefinitions
+		let typ = qualifiedTypeToType defs $ declarationType declaration
+		-- TODO: this isn't working at all. LLVM TypeDefinitions are only for
+		-- structs, we actually need to keep track of the type definitions ourselves
+		-- it seems. Which sucks because our code was so neat with Module..
+		addDefn $ AST.TypeDefinition (AST.Name name) (Just typ)
 	where
-		name = declarationName declaration
+		name = declarationName declaration	
 
 generateStaticDecl :: Declaration -> Module ()
-generateStaticDecl decl = addDefn def
-	where
-		def = AST.GlobalDefinition $ AST.globalVariableDefaults {
+generateStaticDecl decl = do
+		defs <- gets AST.moduleDefinitions
+		let def = AST.GlobalDefinition $ AST.globalVariableDefaults {
 			name = AST.Name $ declarationName decl,
-			type' = qualifiedTypeToType $ declType $ declarationSpecs decl
+			type' = qualifiedTypeToType defs $ declType $ declarationSpecs decl
 		}
+		addDefn def
 
 buildGlobalSymbolTable :: [AST.Definition] -> [(String, AST.Operand)]
--- TODO: for each global definition generate a symbol table entry
--- for example: ConstantOperand . C.GlobalReference name
 buildGlobalSymbolTable [] = []
 buildGlobalSymbolTable ((AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
 	where
@@ -95,10 +105,10 @@ buildGlobalSymbolTable ((AST.TypeDefinition (AST.Name _n) _maybeType):rest) = bu
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = do
 		defs <- gets AST.moduleDefinitions
+		let tp = qualifiedTypeToType [] $ declType declSpecs
 		define tp name fnargs (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
-		tp = qualifiedTypeToType $ declType declSpecs
 		name = extractDeclrName declr
 		_args = []
 		fnargs = []

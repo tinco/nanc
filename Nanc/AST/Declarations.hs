@@ -128,7 +128,7 @@ buildDeclarationSpecs specs = build emptyDeclarationSpec specs
 				parse (CComplexType n) = trace ("What the hell is a ComplexType? " ++ (show n)) undefined
 				parse (CSUType u n) = (CT (CSU u []), n)
 				parse (CEnumType e n) = (CT (E e), n)
-				parse (CTypeDef i n) = (CT (TD i), n)
+				parse (CTypeDef (Ident name _ _) n) = (CT (TD name), n)
 				parse (CTypeOfExpr e n) = (CT (TOE e), n)
 				parse (CTypeOfType d n) = (CT (TOT d), n)
 				parse (CCharType n)
