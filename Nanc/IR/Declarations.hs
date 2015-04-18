@@ -65,11 +65,7 @@ generateExternVariable declaration = trace ("Non function extern: " ++ (show $ d
 generateTypedef :: Declaration -> Module ()
 generateTypedef declaration = do
 		defs <- gets typeDefinitions
-		let typ = qualifiedTypeToType defs $ declarationType declaration
-		-- TODO: this isn't working at all. LLVM TypeDefinitions are only for
-		-- structs, we actually need to keep track of the type definitions ourselves
-		-- it seems. Which sucks because our code was so neat with Module..
-		addDefn $ AST.TypeDefinition (AST.Name name) (Just typ)
+		modify $ \s -> s { typeDefinitions = defs ++ [(name, declarationType declaration)] }
 	where
 		name = declarationName declaration	
 
