@@ -20,4 +20,4 @@ import Nanc.IR.Declarations
  A module consists of a list of external declarations.
 -}
 generate :: String -> CTranslUnit -> AST.Module
-generate name (CTranslUnit decls _) = runModule (emptyModule name) (mapM_ generateExtDecl decls)
+generate name (CTranslUnit decls _) = llvmModuleState $ runModule (emptyModule name) (mapM_ generateExtDecl decls)

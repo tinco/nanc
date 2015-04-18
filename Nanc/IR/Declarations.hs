@@ -51,7 +51,7 @@ generateToplevelDecl decl
 
 generateExternFunction :: Declaration -> Module ()
 generateExternFunction declaration = do
-		defs <- gets AST.moduleDefinitions
+		defs <- gets typeDefinitions
 		let fTypeToTuple (FT (FunctionType rt argts)) = (qualifiedTypeToType defs rt, map (\ (t,n) -> (qualifiedTypeToType defs t, AST.Name n)) argts) 
 		let (retty, argtys) = fTypeToTuple fType
 		external retty name argtys
@@ -64,7 +64,7 @@ generateExternVariable declaration = trace ("Non function extern: " ++ (show $ d
 
 generateTypedef :: Declaration -> Module ()
 generateTypedef declaration = do
-		defs <- gets AST.moduleDefinitions
+		defs <- gets typeDefinitions
 		let typ = qualifiedTypeToType defs $ declarationType declaration
 		-- TODO: this isn't working at all. LLVM TypeDefinitions are only for
 		-- structs, we actually need to keep track of the type definitions ourselves
@@ -75,7 +75,7 @@ generateTypedef declaration = do
 
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = do
-		defs <- gets AST.moduleDefinitions
+		defs <- gets typeDefinitions
 		let def = AST.GlobalDefinition $ AST.globalVariableDefaults {
 			name = AST.Name $ declarationName decl,
 			type' = qualifiedTypeToType defs $ declType $ declarationSpecs decl
@@ -104,7 +104,8 @@ buildGlobalSymbolTable ((AST.TypeDefinition (AST.Name _n) _maybeType):rest) = bu
 
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = do
-		defs <- gets AST.moduleDefinitions
+		llvmModuleState <- gets llvmModuleState
+		let defs = AST.moduleDefinitions llvmModuleState
 		let tp = qualifiedTypeToType [] $ declType declSpecs
 		define tp name fnargs (bls defs)
 	where

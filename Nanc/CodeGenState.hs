@@ -3,6 +3,8 @@
 
 module Nanc.CodeGenState where
 
+import Nanc.AST
+
 import Data.Word
 import Data.List
 import Data.Function
@@ -39,22 +41,30 @@ data BlockState = BlockState {
 	term  :: Maybe (Named Terminator)        -- Block terminator
 } deriving Show
 
+data ModuleState = ModuleState {
+	llvmModuleState :: AST.Module,
+	typeDefinitions :: [(String, QualifiedType)]
+}
+
 newtype Codegen a = Codegen {
 	runCodegen :: State CodegenState a
 } deriving (Functor, Applicative, Monad, MonadState CodegenState )
 
 newtype Module a = Module {
-	unModule :: State AST.Module a
-} deriving (Functor, Applicative, Monad, MonadState AST.Module )
+	unModule :: State ModuleState a
+} deriving (Functor, Applicative, Monad, MonadState ModuleState )
 
-runModule :: AST.Module -> Module a -> AST.Module
+runModule :: ModuleState -> Module a -> ModuleState
 runModule = flip (execState . unModule)
 
 execCodegen :: CodegenState -> Codegen a -> CodegenState
 execCodegen initial m = execState (runCodegen m) initial
 
-emptyModule :: String -> AST.Module
-emptyModule label = defaultModule { moduleName = label }
+emptyModule :: String -> ModuleState
+emptyModule label = ModuleState {
+	llvmModuleState = defaultModule { moduleName = label },
+	typeDefinitions = []
+}
 
 emptyCodegen :: CodegenState
 emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
@@ -64,8 +74,9 @@ entryBlockName = "entry"
 
 addDefn :: Definition -> Module ()
 addDefn d = do
-	defs <- gets moduleDefinitions
-	modify $ \s -> s { moduleDefinitions = defs ++ [d] }
+	llvmModuleState <- gets llvmModuleState
+	let defs = moduleDefinitions llvmModuleState
+	modify $ \s -> s { llvmModuleState = llvmModuleState { moduleDefinitions = defs ++ [d] } }
 
 define ::  Type -> String -> [(Type, Name)] -> [BasicBlock] -> Module ()
 define retty label argtys body = addDefn $ GlobalDefinition $ functionDefaults {
