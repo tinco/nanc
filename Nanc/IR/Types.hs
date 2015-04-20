@@ -19,6 +19,7 @@ simpleTypeToType SignedInt _ = IntegerType 32
 simpleTypeToType Void _ = VoidType
 simpleTypeToType SignedLongLongInt _ = IntegerType 64
 simpleTypeToType Char _ = IntegerType 8
+simpleTypeToType UnsignedLongInt _ = IntegerType 64
 simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefined
 
 complexTypeToType :: [(String, QualifiedType)] -> ComplexType -> TypeQualifiers -> Type
