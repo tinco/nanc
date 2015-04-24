@@ -22,6 +22,10 @@ simpleTypeToType Char _ = IntegerType 8
 simpleTypeToType UnsignedLongInt _ = IntegerType 64
 simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefined
 
+{- Hint about implementing unions:
+-  01:10 < o11c> but union {int i; double d; }; -> struct { int i[0]; double d[0]; char _data[max(sizeof(int), sizeof(double))]; };
+--}
+
 complexTypeToType :: [(String, QualifiedType)] -> ComplexType -> TypeQualifiers -> Type
 complexTypeToType _ (CSU _ _) _ = StructureType False []
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
