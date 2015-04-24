@@ -57,7 +57,11 @@ buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 		buildFunType qt (CFunDeclr (Right (decls, _mysteriousBool)) _ _) =
 			QualifiedType (FT (FunctionType qt args)) defaultTypeQualifiers
 				where
-					args = map (\ d -> (declarationType d, declarationName d)) $ map buildDeclaration decls
+					args | isVoid args' = []
+					     | otherwise = args'
+					args' = map (\ d -> (declarationType d, declarationName d)) $ map buildDeclaration decls
+					isVoid [(QualifiedType (ST Void) _,_)] = True
+					isVoid _ = False
 
 		buildArrType qt (CArrDeclr qs _ _) = trace "ArrDeclr not implemented" (QualifiedType (Arr 0 qt) (fst $ buildTypeQualifiers qs))
 
