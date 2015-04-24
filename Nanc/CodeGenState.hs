@@ -17,7 +17,6 @@ import Control.Applicative
 import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
-
 import qualified LLVM.General.AST.Constant as C
 
 type SymbolTable = [(String, Operand)]
@@ -63,8 +62,13 @@ execCodegen initial m = execState (runCodegen m) initial
 emptyModule :: String -> ModuleState
 emptyModule label = ModuleState {
 	llvmModuleState = defaultModule { moduleName = label },
-	typeDefinitions = []
+	typeDefinitions = builtinTypeDefinitions
 }
+
+builtinTypeDefinitions :: [(String, QualifiedType)]
+builtinTypeDefinitions = [
+		("__builtin_va_list", QualifiedType (Ptr (QualifiedType (ST Char) defaultTypeQualifiers)) defaultTypeQualifiers)
+	]
 
 emptyCodegen :: CodegenState
 emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
