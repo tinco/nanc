@@ -65,6 +65,13 @@ emptyModule label = ModuleState {
 	typeDefinitions = builtinTypeDefinitions
 }
 
+{- More information about builtins here:
+ - https://github.com/llvm-mirror/clang/blob/master/lib/CodeGen/CGBuiltin.cpp#L236
+ - <o11c> d-snp: on GCC you can grep for TARGET_BUILD_BUILTIN_VA_LIST
+ - <jroelofs> d-snp: the frontend gets them from here: https://github.com/llvm-mirror/clang/blob/master/lib/Headers/stdarg.h#L33
+ - ASTContext.cpp -> CreateVaListDecl
+ - < o11c> d-snp: https://raw.githubusercontent.com/gcc-mirror/gcc/master/gcc/config/i386/i386.c    and grep for    ix86_build_builtin_va_list_abi
+ -}
 builtinTypeDefinitions :: [(String, QualifiedType)]
 builtinTypeDefinitions = [
 		("__builtin_va_list", QualifiedType (Ptr (QualifiedType (ST Char) defaultTypeQualifiers)) defaultTypeQualifiers)
