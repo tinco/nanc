@@ -15,12 +15,13 @@ import Nanc.AST
 
 buildDeclaration :: CDecl -> Declaration
 buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmName attrs _),_,_)] _) =
-	Declaration {
-		declarationName = name,
-		declarationSpecs = ds,
-		declarationType = buildDerivedType (declType ds) derivedDeclarators 
-	}
+	result
 	where
+		result = Declaration {
+			declarationName = name,
+			declarationSpecs = ds,
+			declarationType = buildDerivedType (declType ds) derivedDeclarators 
+		}
 		ds = buildDeclarationSpecs specs
 		name = fromMaybe "AnonymousDeclaration" (identToString <$> maybeName) 
 
@@ -44,7 +45,9 @@ buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
 buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 	where
 		buildDerivedType' qt [] = qt
-		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = buildDerivedType' (QualifiedType (Ptr qt) (fst $ buildTypeQualifiers qs)) ddrs
+		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = result
+			where
+				result = buildDerivedType' (QualifiedType (Ptr qt) (fst $ buildTypeQualifiers qs)) ddrs
 		buildDerivedType' qt (funDecl@(CFunDeclr _ _ _):ddrs) = buildDerivedType' (buildFunType qt funDecl) ddrs
 		buildDerivedType' qt (arrDecl@(CArrDeclr _ _ _):ddrs) = buildDerivedType' (buildArrType qt arrDecl) ddrs
 
@@ -80,16 +83,16 @@ globalDeclarationDefaults declaration = declaration {
 		  | otherwise = declStorage ds
 
 buildDeclarationSpecs :: [CDeclSpec] -> DeclarationSpecs
-buildDeclarationSpecs specs = build emptyDeclarationSpec specs
+buildDeclarationSpecs specs = updateTypeQual (build emptyDeclarationSpec specs) typeQuals
 	where
+		typeQuals = catMaybes $ map extractTypeQual specs
+		extractTypeQual (CTypeQual tq) = Just tq
+		extractTypeQual _ = Nothing
+
 		build ds [] = ds
 		build ds ((CStorageSpec ss):rest) = build (updateStorageSpec ds ss) rest
 		build ds ((CTypeSpec spec):rest) = build (updateTypeSpec ds spec rest) rest
-		build ds quals@((CTypeQual _):_) = updateTypeQual ds typeQuals
-			where
-				typeQuals = catMaybes $ map extractTypeQual quals
-				extractTypeQual (CTypeQual tq) = Just tq
-				extractTypeQual _ = Nothing
+		build ds ((CTypeQual _):rest) = build ds rest
 
 		updateStorageSpec ds ss = ds { 
 			declStorage = declStorage',
