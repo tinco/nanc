@@ -47,7 +47,9 @@ buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 		buildDerivedType' qt [] = qt
 		buildDerivedType' qt ((CPtrDeclr qs _):ddrs) = result
 			where
-				result = buildDerivedType' (QualifiedType (Ptr qt) (fst $ buildTypeQualifiers qs)) ddrs
+				voidToByte (QualifiedType (ST Void) q) = QualifiedType (ST Char) q
+				voidToByte qt = qt
+				result = buildDerivedType' (QualifiedType (Ptr (voidToByte qt)) (fst $ buildTypeQualifiers qs)) ddrs
 		buildDerivedType' qt (funDecl@(CFunDeclr _ _ _):ddrs) = buildDerivedType' (buildFunType qt funDecl) ddrs
 		buildDerivedType' qt (arrDecl@(CArrDeclr _ _ _):ddrs) = buildDerivedType' (buildArrType qt arrDecl) ddrs
 
