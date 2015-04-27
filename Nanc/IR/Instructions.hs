@@ -1,5 +1,7 @@
 module Nanc.IR.Instructions where
 
+import Debug.Trace
+
 import Control.Monad.State
 
 import LLVM.General.AST hiding (Module)
@@ -7,6 +9,7 @@ import LLVM.General.AST hiding (Module)
 import qualified LLVM.General.AST.Attribute as A
 import qualified LLVM.General.AST.CallingConvention as CC
 import LLVM.General.AST.AddrSpace
+import qualified LLVM.General.AST.Constant as C
 
 import Nanc.CodeGenState
 
@@ -31,6 +34,9 @@ terminator trm = do
 
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
+
+add :: Type -> Operand -> Operand -> Codegen Operand
+add t a b = instr t $ Add False False a b []
 
 fadd :: Operand -> Operand -> Codegen Operand
 fadd a b = instr double $ FAdd NoFastMathFlags a b []
@@ -57,7 +63,7 @@ call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr double $ Call False CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: Type -> Codegen Operand
-alloca ty = instr double $ Alloca ty Nothing 0 []
+alloca ty = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
 
 store :: Type -> Operand -> Operand -> Codegen Operand
 store t ptr val = instr t $ Store False ptr val Nothing 0 []
@@ -65,5 +71,11 @@ store t ptr val = instr t $ Store False ptr val Nothing 0 []
 load :: Type -> Operand -> Codegen Operand
 load t ptr = instr t $ Load False ptr Nothing 0 []
 
-intToPtr :: Type -> Operand -> Codegen Operand
-intToPtr t val = instr (PointerType t (AddrSpace 0)) $ IntToPtr val t []
+operandToType :: Operand -> Type
+operandToType (LocalReference t _) = t
+operandToType (ConstantOperand c) = contantOperandToType c
+operandToType _ = MetadataType
+
+contantOperandToType :: C.Constant -> Type
+contantOperandToType (C.GlobalReference t _) = t
+contantOperandToType c = trace ("Unknown constant type: " ++ show c) undefined

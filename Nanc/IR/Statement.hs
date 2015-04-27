@@ -20,7 +20,7 @@ import Nanc.IR.Instructions
 generateStatement :: CStat -> Codegen ()
 generateStatement (CExpr expr _) = void $ generateExpression (fromJust expr)
 generateStatement (CReturn Nothing _)= void $ ret Nothing
-generateStatement (CReturn (Just expr) _) = void $ generateExpression expr >>= ret . Just
+generateStatement (CReturn (Just expr) _) = void $ generateExpression expr >>= ret . Just . fst
 generateStatement (CCompound _ident items _) = mapM_ generateBlockItem items
 generateStatement (CIf expr trueStat maybeElseStat _) = generateIfStatement expr trueStat maybeElseStat
 generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
@@ -37,7 +37,7 @@ generateIfStatement condition trueStat maybeElseStat = do
 
 	-- %entry
 	------------------
-	cond <- generateExpression condition
+	(cond, _) <- generateExpression condition
 	cbr cond ifthen ifelse
 
 	-- if.then

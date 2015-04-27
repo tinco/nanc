@@ -21,6 +21,10 @@ import Nanc.IR.Types
 import Nanc.IR.Statement
 import Nanc.IR.Expression
 
+-- TODO: why compile declarations we might never reference? We should
+-- make this lazy. So a declaration only gets compiled when it's referenced
+-- from main or is externally visible.
+
 {-
 External declarations can either be a toplevel declaration, a function definition or external assember
 -}
