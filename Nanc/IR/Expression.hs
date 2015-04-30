@@ -46,15 +46,6 @@ generateExpression (CUnary CIndOp expr _) = do
 	(_, Just addr) <- generateExpression expr
 	return (addr, Nothing)
 
--- So the problem here is that we're going to mutate expr
--- in C the ++ is only legal when expr is assignable.
--- we solve that by making CVar expressions return pointers
--- instead of direct values. But then all other expressions
--- need to explicitly load the pointers, but this would break
--- in case of real pointer arithmetic. So it's better to have
--- the assignments as an exception. Could we store both the
--- address and the Operand in the return value?
-
 -- var++
 generateExpression (CUnary CPostIncOp expr _) = do
 	(val, Just addr) <- generateExpression expr
@@ -63,6 +54,34 @@ generateExpression (CUnary CPostIncOp expr _) = do
 	store t addr inc_val
 	return (val, Nothing)
 
--- 1: CUnary CIndOp (CUnary CPostIncOp (CMember (CVar (Ident "_p" 14431 (_)) (_)) (Ident "_p" 14431 (_)) True (_)) (_)) (_)
--- 2: CVar (Ident "_c" 12767 (_)) (_)
+-- --var;
+generateExpression (CUnary CPreDecOp expr _) = do
+	(val, Just addr) <- generateExpression expr
+	let t = operandToType val
+	dec_val <- subtract t val (AST.ConstantOperand $ C.Int 32 1)
+	store t addr dec_val
+	return (dec_val, Nothing)
+
+--  Binary expressions
+generateExpression (CBinary op leftExpr rightExpr _) = do
+	(leftVal, _) <- generateExpression leftExpr
+	(rightVal, _) <- generateExpression rightExpr
+	result <- (binaryOp op) leftVal rightVal
+	return (result, Nothing)
+
+generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = undefined 
+
+-- (CConst (CCharConst '\n' ()))
+-- (CConst (CIntConst 0 ())) ())
+generateExpression (CConst c) _ = undefined
+generateExpression (CCast decl expr _) = undefined
+
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
+
+binaryOp :: BinaryOp -> (AST.Operand -> AST.Operand -> Codegen AST.Operand)
+binaryOp CLorOp = undefined
+binaryOp CGeqOp = undefined
+binaryOp CLndOp = undefined
+binaryOp CNeqOp = undefined
+
+
