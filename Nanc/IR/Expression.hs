@@ -58,7 +58,7 @@ generateExpression (CUnary CPostIncOp expr _) = do
 generateExpression (CUnary CPreDecOp expr _) = do
 	(val, Just addr) <- generateExpression expr
 	let t = operandToType val
-	dec_val <- subtract t val (AST.ConstantOperand $ C.Int 32 1)
+	dec_val <- add t val (AST.ConstantOperand $ C.Int 32 (-1))
 	store t addr dec_val
 	return (dec_val, Nothing)
 
@@ -73,12 +73,12 @@ generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = undefined
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression (CConst c) _ = undefined
+generateExpression (CConst c) = undefined
 generateExpression (CCast decl expr _) = undefined
 
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
 
-binaryOp :: BinaryOp -> (AST.Operand -> AST.Operand -> Codegen AST.Operand)
+binaryOp :: CBinaryOp -> (AST.Operand -> AST.Operand -> Codegen AST.Operand)
 binaryOp CLorOp = undefined
 binaryOp CGeqOp = undefined
 binaryOp CLndOp = undefined
