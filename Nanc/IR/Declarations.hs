@@ -40,10 +40,10 @@ the elements of the non-empty init-declarator-list are of the form (Just declr, 
 -}
 generateToplevelDecl :: CDecl -> Module ()
 generateToplevelDecl decl
-	| isExtern && isFunction = generateExternFunction declaration
-	| isExtern = generateExternVariable declaration
-	| isTypedef = generateTypedef declaration
-	| isStatic = generateStaticDecl declaration
+	| isExtern && isFunction = trace "ExternFunction" $ generateExternFunction declaration
+	| isExtern = trace "ExternVariable" $ generateExternVariable declaration
+	| isTypedef = trace "Typedef" $ generateTypedef declaration
+	| isStatic = trace "StaticDecl" $ generateStaticDecl declaration
 	| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
 	where
 		declaration = globalDeclarationDefaults $ buildDeclaration decl
@@ -68,8 +68,10 @@ generateExternVariable declaration = trace ("Non function extern: " ++ (show $ d
 
 generateTypedef :: Declaration -> Module ()
 generateTypedef declaration = do
+		return $ trace "Generate type def"
 		defs <- gets typeDefinitions
 		modify $ \s -> s { typeDefinitions = defs ++ [(name, declarationType declaration)] }
+		return $ trace name ()
 	where
 		name = declarationName declaration	
 

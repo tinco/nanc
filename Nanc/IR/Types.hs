@@ -1,5 +1,8 @@
 module Nanc.IR.Types where
 
+import Language.C.Data.Ident
+import Language.C.Syntax
+
 import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.AddrSpace
 
@@ -29,6 +32,7 @@ simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefi
 complexTypeToType :: [(String, QualifiedType)] -> ComplexType -> TypeQualifiers -> Type
 complexTypeToType _ (CSU _ _) _ = StructureType False []
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
+complexTypeToType defs (E (CEnum (Just (Ident n _ _)) _ _ a)) _ = trace ("This is a type declaration: " ++ n) undefined
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined
 
 lookupType :: [(String, QualifiedType)] -> String -> QualifiedType
