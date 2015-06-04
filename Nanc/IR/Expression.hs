@@ -86,9 +86,11 @@ binaryOp CLndOp a b = binInstr AST.And a b
 binaryOp CNeqOp a b
 	| isInteger a && isInteger b = intNeq
 	| isFloat a && isFloat b = fNeq
-	| otherwise = trace ("Binary expression on non-float non-integer types or mixed") 
+	| otherwise = trace ("Binary expression on non-float non-integer types or mixed") undefined
 	where
-		intNeq = notInstr $ binInstr AST.And a b
+		intNeq = do
+			r <- binInstr AST.And a b
+			notInstr r
 		fNeq = undefined
 
 binaryOp CGeqOp a b = undefined
