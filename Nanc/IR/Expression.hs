@@ -66,7 +66,7 @@ generateExpression (CUnary CPreDecOp expr _) = do
 generateExpression (CBinary op leftExpr rightExpr _) = do
 	(leftVal, _) <- generateExpression leftExpr
 	(rightVal, _) <- generateExpression rightExpr
-	result <- (binaryOp op) leftVal rightVal
+	result <- binaryOp op leftVal rightVal
 	return (result, Nothing)
 
 generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = undefined 
@@ -78,10 +78,27 @@ generateExpression (CCast decl expr _) = undefined
 
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
 
-binaryOp :: CBinaryOp -> (AST.Operand -> AST.Operand -> Codegen AST.Operand)
-binaryOp CLorOp = undefined
-binaryOp CGeqOp = undefined
-binaryOp CLndOp = undefined
-binaryOp CNeqOp = undefined
 
+-- choose between icmp and fcmp
+binaryOp :: CBinaryOp -> AST.Operand -> AST.Operand -> Codegen AST.Operand
+binaryOp CLorOp a b = binInstr AST.Or a b
+binaryOp CLndOp a b = binInstr AST.And a b
+binaryOp CNeqOp a b
+	| isInteger a && isInteger b = intNeq
+	| isFloat a && isFloat b = fNeq
+	| otherwise = trace ("Binary expression on non-float non-integer types or mixed") 
+	where
+		intNeq = notInstr $ binInstr AST.And a b
+		fNeq = undefined
 
+binaryOp CGeqOp a b = undefined
+
+isInteger :: AST.Operand -> Bool
+isInteger (AST.LocalReference (AST.IntegerType _) _) = True
+isInteger (AST.ConstantOperand (C.Int _ _)) = True
+isInteger _ = False
+
+isFloat :: AST.Operand -> Bool
+isFloat (AST.LocalReference (AST.FloatingPointType _ _) _) = True
+isFloat (AST.ConstantOperand (C.Float _)) = True
+isFloat _ = False

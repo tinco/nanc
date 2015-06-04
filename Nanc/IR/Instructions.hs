@@ -26,6 +26,10 @@ instr t ins = do
 	modifyBlock $ blk { stack = i ++ [ref := ins] }
 	return $ local ref t
 
+binInstr op a b = instr (IntegerType 1) $ op a b []
+
+notInstr a = instr (IntegerType 1) $ Xor a (ConstantOperand $ C.Int 1 1) []
+
 terminator :: Named Terminator -> Codegen (Named Terminator)
 terminator trm = do
 	blk <- current
