@@ -69,12 +69,12 @@ generateExpression (CBinary op leftExpr rightExpr _) = do
 	result <- binaryOp op leftVal rightVal
 	return (result, Nothing)
 
-generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = undefined 
+generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = trace "I don't know how to do CMember" undefined 
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression (CConst c) = undefined
-generateExpression (CCast decl expr _) = undefined
+generateExpression (CConst c) = trace "I don't know how to do CConst" undefined
+generateExpression (CCast decl expr _) = trace "I don't know how to do CCast" undefined
 
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
 
@@ -91,9 +91,9 @@ binaryOp CNeqOp a b
 		intNeq = do
 			r <- binInstr AST.And a b
 			notInstr r
-		fNeq = undefined
+		fNeq = trace ("I dont know how to compare floats yet") undefined
 
-binaryOp CGeqOp a b = undefined
+binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp") undefined
 
 isInteger :: AST.Operand -> Bool
 isInteger (AST.LocalReference (AST.IntegerType _) _) = True
