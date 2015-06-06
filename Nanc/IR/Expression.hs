@@ -50,7 +50,7 @@ generateExpression (CUnary CIndOp expr _) = do
 generateExpression (CUnary CPostIncOp expr _) = do
 	(val, Just addr) <- generateExpression expr
 	let t = operandToType val
-	inc_val <- add t val (AST.ConstantOperand $ C.Int 32 1)
+	inc_val <- add t val (intConst 1)
 	store t addr inc_val
 	return (val, Nothing)
 
@@ -58,7 +58,7 @@ generateExpression (CUnary CPostIncOp expr _) = do
 generateExpression (CUnary CPreDecOp expr _) = do
 	(val, Just addr) <- generateExpression expr
 	let t = operandToType val
-	dec_val <- add t val (AST.ConstantOperand $ C.Int 32 (-1))
+	dec_val <- add t val (intConst (-1))
 	store t addr dec_val
 	return (dec_val, Nothing)
 
@@ -69,7 +69,7 @@ generateExpression (CBinary op leftExpr rightExpr _) = do
 	result <- binaryOp op leftVal rightVal
 	return (result, Nothing)
 
-generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = trace "I don't know how to do CMember" undefined 
+generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = trace "I don't know how to do CMember" $ undefined
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
@@ -94,6 +94,9 @@ binaryOp CNeqOp a b
 		fNeq = trace ("I dont know how to compare floats yet") undefined
 
 binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp") undefined
+
+intConst :: Integer -> AST.Operand
+intConst = AST.ConstantOperand . (C.Int 32)
 
 isInteger :: AST.Operand -> Bool
 isInteger (AST.LocalReference (AST.IntegerType _) _) = True
