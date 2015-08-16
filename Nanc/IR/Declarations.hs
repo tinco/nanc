@@ -114,7 +114,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		declSpecs = buildDeclarationSpecs specs
 		name = extractDeclrName declr
 		_args = []
-		fnargs = []
+		fnargs = extractFnArgs declr
 
 		initialCodeGenState ds = emptyCodegen {
 			symboltables = [buildGlobalSymbolTable ds]
@@ -127,4 +127,11 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 			generateStatement stat
 
 extractDeclrName :: CDeclr -> String
-extractDeclrName (CDeclr ident _ _ _ _)= maybe "anonymous" (\ (Ident n _ _) -> n) ident
+extractDeclrName (CDeclr ident _ _ _ _) = maybe "anonymous" (\ (Ident n _ _) -> n) ident
+
+extractFnArgs :: CDeclr -> [(AST.Type, AST.Name)]
+-- Only parse new style params
+extractFnArgs (CDeclr _ [CFunDeclr (Right (params, mysteriousBool)) _ _] _ _ _) = args
+	where
+		declarations = map buildDeclaration params
+		args = map (\ d -> (qualifiedTypeToType [] $ declarationType d, AST.Name $ declarationName d) ) declarations
