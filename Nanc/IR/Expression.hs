@@ -69,7 +69,11 @@ generateExpression (CBinary op leftExpr rightExpr _) = do
 	result <- binaryOp op leftVal rightVal
 	return (result, Nothing)
 
-generateExpression (CMember subjectExpr (Ident memname _ _) _bool _) = trace "I don't know how to do CMember" $ undefined
+-- CVar (Ident "_p" 14431 n) n
+generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
+	(_, Just addr) <- generateExpression subjectExpr
+	let t = operandToType addr
+	trace ("I don't know how to do CMember: " ++ (show subjectExpr) ++ " -- " ) $ trace (show t) $ undefined
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
