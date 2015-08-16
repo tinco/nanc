@@ -42,7 +42,7 @@ generateToplevelDecl :: CDecl -> Module ()
 generateToplevelDecl decl
 	| isExtern && isFunction = trace "ExternFunction" $ generateExternFunction declaration
 	| isExtern = trace "ExternVariable" $ generateExternVariable declaration
-	| isTypedef = trace "Typedef" $ generateTypedef declaration
+	| isTypedef = generateTypedef declaration
 	| isStatic = trace "StaticDecl" $ generateStaticDecl declaration
 	| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
 	where
@@ -67,11 +67,10 @@ generateExternVariable :: Declaration -> Module ()
 generateExternVariable declaration = trace ("Non function extern: " ++ (show $ declarationName declaration)) $ return ()
 
 generateTypedef :: Declaration -> Module ()
-generateTypedef declaration = do
-		return $ trace "Generate type def"
+generateTypedef declaration = trace ("Typedef: " ++ (show name)) $ do
 		defs <- gets typeDefinitions
 		modify $ \s -> s { typeDefinitions = defs ++ [(name, declarationType declaration)] }
-		return $ trace name ()
+		return ()
 	where
 		name = declarationName declaration	
 

@@ -15,8 +15,9 @@ import Nanc.AST
 
 buildDeclaration :: CDecl -> Declaration
 buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmName attrs _),_,_)] _) =
-	trace "Going to run buildDeclaration" $
-	trace ("DeclName: " ++ name) result
+--	trace "Going to run buildDeclaration" $
+--	trace ("DeclName: " ++ name)
+	result
 	where
 		result = Declaration {
 			declarationName = name,
@@ -29,8 +30,9 @@ buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmNa
 {- CDecl [CTypeSpec (CTypeDef (Ident "size_t" 213839698))] [] -}
 -- This is a declaration with just a typespecifier and no extra information
 buildDeclaration decl@(CDecl specs [] _) =
-	trace "Going to run buildDeclaration" $
-	trace ("DeclName: " ++ name) result
+--	trace "Going to run buildDeclaration" $
+--	trace ("DeclName: " ++ name)
+	result
 	where
 		result = Declaration {
 			declarationName = name,
