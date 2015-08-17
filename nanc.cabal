@@ -49,7 +49,7 @@ cabal-version:       >=1.10
 executable nanc
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
-  ghc-options:         -fno-warn-tabs
+  ghc-options:         -fno-warn-tabs -prof -fprof-auto -with-rtsopts=-xc
   
   -- Modules included in this executable, other than Main.
   -- other-modules:       
