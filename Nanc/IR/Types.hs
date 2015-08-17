@@ -2,6 +2,7 @@ module Nanc.IR.Types where
 
 import Language.C.Data.Ident
 import Language.C.Syntax
+import GHC.Stack
 
 import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.AddrSpace
@@ -36,7 +37,7 @@ complexTypeToType defs (E (CEnum (Just (Ident n _ _)) _ _ a)) _ = trace ("This i
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined
 
 lookupType :: [(String, QualifiedType)] -> String -> QualifiedType
-lookupType [] n = error ("Referenced undeclared type: " ++ n)
+lookupType [] n = errorWithStackTrace ("Referenced undeclared type: " ++ n)
 lookupType ((name, typ):rest) n 
 	| name == n = typ
 	| otherwise = lookupType rest n

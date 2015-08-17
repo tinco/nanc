@@ -49,6 +49,7 @@ cabal-version:       >=1.10
 executable nanc
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
+  ghc-options:         -fno-warn-tabs
   
   -- Modules included in this executable, other than Main.
   -- other-modules:       
@@ -57,7 +58,7 @@ executable nanc
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.6 && <4.7, language-c >= 0.4.7, llvm-general >= 3.4.4.1, llvm-general-pure >= 3.4.4.0,
+  build-depends:       base >=4.8, language-c >= 0.4.7, llvm-general >= 3.4.4.1, llvm-general-pure >= 3.4.4.0,
                        containers, mtl >=2.2.1, transformers >=0.4.1.0
   
   -- Directories containing source files.
