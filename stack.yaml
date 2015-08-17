@@ -1,0 +1,7 @@
+flags: {}
+packages:
+- '.'
+extra-deps:
+  - llvm-general-3.4.5.4
+  - llvm-general-pure-3.4.5.4
+resolver: lts-3.1
