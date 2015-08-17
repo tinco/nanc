@@ -77,10 +77,19 @@ generateTypedef declaration = trace ("Typedef: " ++ (show name)) $ do
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = do
 		defs <- gets typeDefinitions
-		let def = AST.GlobalDefinition $ AST.globalVariableDefaults {
-			name = AST.Name $ declarationName decl,
-			type' = qualifiedTypeToType defs $ declType $ declarationSpecs decl
-		}
+		let def = case declType $ declarationSpecs decl of
+			typ@(QualifiedType (CT (E (CEnum (Just (Ident n _ _)) _ _ a))) _)
+				->
+					AST.GlobalDefinition $ AST.globalVariableDefaults {
+						name = AST.Name n,
+						type' = qualifiedTypeToType defs $ typ
+					}
+			typ
+				->
+					AST.GlobalDefinition $ AST.globalVariableDefaults {
+						name = AST.Name $ declarationName decl,
+						type' = qualifiedTypeToType defs $ typ
+					}
 		addDefn def
 
 buildGlobalSymbolTable :: [AST.Definition] -> [(String, AST.Operand)]
