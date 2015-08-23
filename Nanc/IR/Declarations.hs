@@ -125,6 +125,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		name = extractDeclrName declr
 		_args = []
 
+		--TODO add function arguments to symbol table, it's next prio on OSX
 		initialCodeGenState ds = emptyCodegen {
 			symboltables = [buildGlobalSymbolTable ds]
 		}

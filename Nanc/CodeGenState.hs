@@ -3,6 +3,8 @@
 
 module Nanc.CodeGenState where
 
+import GHC.Stack
+
 import Nanc.AST
 
 import Data.Word
@@ -197,4 +199,4 @@ getvar var = do
   symtabs <- gets symboltables
   case symbolLookup var symtabs of
     Just x  -> return x
-    Nothing -> error $ "Local variable not in scope: " ++ show var
+    Nothing -> errorWithStackTrace $ "Local variable not in scope: " ++ (show var) ++ " symtable: " ++ (show symtabs)
