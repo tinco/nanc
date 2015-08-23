@@ -8,6 +8,7 @@ import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.AddrSpace
 
 import Nanc.AST
+import Data.List
 
 import Debug.Trace
 
@@ -38,7 +39,6 @@ complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined
 
 lookupType :: [(String, QualifiedType)] -> String -> QualifiedType
-lookupType [] n = errorWithStackTrace ("Referenced undeclared type: " ++ n)
-lookupType ((name, typ):rest) n 
-	| name == n = typ
-	| otherwise = lookupType rest n
+lookupType types name = case find (\ (n, typ) -> n == name) types of
+	Just (name, typ) -> typ
+	Nothing ->  errorWithStackTrace ("Referenced undeclared type: " ++ name ++ "\n in: " ++ (show types))
