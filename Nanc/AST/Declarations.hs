@@ -45,7 +45,9 @@ buildDeclaration decl@(CDecl specs [] _) =
 		structName _ = Nothing
 
 buildDeclaration decl = trace ("Weird declaration: " ++ (show $ decl)) undefined
-	
+
+-- A derived type is a type with an indirect type such as functions, pointers and arrays. I.e. they
+-- are of type pointer *to* int, array *of* float.
 buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
 buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 	where
@@ -68,7 +70,9 @@ buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 					isVoid [(QualifiedType (ST Void) _,_)] = True
 					isVoid _ = False
 
-		buildArrType qt (CArrDeclr qs _ _) = trace "ArrDeclr not implemented" (QualifiedType (Arr 0 qt) (fst $ buildTypeQualifiers qs))
+		-- Super hacky: As long as we don't have a way to eval const expressions we'll just assume arrays have a huge length. Hopefully
+		-- that will just work...
+		buildArrType qt (CArrDeclr qs _ _) = trace "We need a constEval for cexpressions in CArrDeclr" $ QualifiedType (Arr 10000 qt) (fst $ buildTypeQualifiers qs)
 
 {-
   CPtrDeclr [CTypeQualifier a] a	= Pointer declarator CPtrDeclr tyquals declr

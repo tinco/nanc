@@ -1,6 +1,7 @@
 module Nanc.AST where
 
 import Data.Maybe
+import Data.Word
 
 import Language.C
 import Language.C.Data.Ident
@@ -33,7 +34,7 @@ data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD String | TOE CExpr | 
 
 data FunctionType = FunctionType QualifiedType [(QualifiedType, String)] deriving (Show)
 
-data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | Arr Int QualifiedType | NoTypeSpec | TypeType deriving (Show)
+data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | Arr Word64 QualifiedType | NoTypeSpec | TypeType deriving (Show)
 
 data QualifiedType = QualifiedType TypeSpec TypeQualifiers deriving (Show)
 

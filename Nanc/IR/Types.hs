@@ -16,6 +16,7 @@ qualifiedTypeToType _ (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
 qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
+qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
 qualifiedTypeToType _ qt = trace ("Unimplemented type: " ++ show qt) undefined
 
 simpleTypeToType :: SimpleType -> TypeQualifiers -> Type
