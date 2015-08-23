@@ -12,7 +12,9 @@ import Data.List
 
 import Debug.Trace
 
-qualifiedTypeToType :: [(String, QualifiedType)] -> QualifiedType -> Type
+type TypeDefinitions = [(String, QualifiedType)]
+
+qualifiedTypeToType :: TypeDefinitions -> QualifiedType -> Type
 qualifiedTypeToType _ (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
@@ -32,13 +34,13 @@ simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefi
 -  01:10 < o11c> but union {int i; double d; }; -> struct { int i[0]; double d[0]; char _data[max(sizeof(int), sizeof(double))]; };
 --}
 
-complexTypeToType :: [(String, QualifiedType)] -> ComplexType -> TypeQualifiers -> Type
+complexTypeToType :: TypeDefinitions -> ComplexType -> TypeQualifiers -> Type
 complexTypeToType _ (CSU _ _) _ = StructureType False []
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
 complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined
 
-lookupType :: [(String, QualifiedType)] -> String -> QualifiedType
+lookupType :: TypeDefinitions -> String -> QualifiedType
 lookupType types name = case find (\ (n, typ) -> n == name) types of
 	Just (name, typ) -> typ
 	Nothing ->  errorWithStackTrace ("Referenced undeclared type: " ++ name ++ "\n in: " ++ (show types))

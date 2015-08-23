@@ -115,14 +115,15 @@ buildGlobalSymbolTable ((AST.TypeDefinition (AST.Name _n) _maybeType):rest) = bu
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = do
 		llvmModuleState <- gets llvmModuleState
+		typeDefs <- gets typeDefinitions
 		let defs = AST.moduleDefinitions llvmModuleState
+		let fnargs = extractFnArgs typeDefs declr
 		let tp = qualifiedTypeToType [] $ declType declSpecs
 		define tp name fnargs (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
 		name = extractDeclrName declr
 		_args = []
-		fnargs = extractFnArgs declr
 
 		initialCodeGenState ds = emptyCodegen {
 			symboltables = [buildGlobalSymbolTable ds]
@@ -137,9 +138,9 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 extractDeclrName :: CDeclr -> String
 extractDeclrName (CDeclr ident _ _ _ _) = maybe "anonymous" (\ (Ident n _ _) -> n) ident
 
-extractFnArgs :: CDeclr -> [(AST.Type, AST.Name)]
+extractFnArgs :: TypeDefinitions -> CDeclr -> [(AST.Type, AST.Name)]
 -- Only parse new style params
-extractFnArgs (CDeclr _ [CFunDeclr (Right (params, mysteriousBool)) _ _] _ _ _) = args
+extractFnArgs typeDefs (CDeclr _ [CFunDeclr (Right (params, mysteriousBool)) _ _] _ _ _) = args
 	where
 		declarations = map buildDeclaration params
-		args = map (\ d -> (qualifiedTypeToType [] $ declarationType d, AST.Name $ declarationName d) ) declarations
+		args = map (\ d -> (qualifiedTypeToType typeDefs $ declarationType d, AST.Name $ declarationName d) ) declarations
