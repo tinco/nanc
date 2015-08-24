@@ -29,6 +29,7 @@ simpleTypeToType Void _ = VoidType
 simpleTypeToType SignedLongLongInt _ = IntegerType 64
 simpleTypeToType Char _ = IntegerType 8
 simpleTypeToType UnsignedLongInt _ = IntegerType 64
+simpleTypeToType UnsignedInt _ = IntegerType 32
 simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefined
 
 {- Hint about implementing unions:
