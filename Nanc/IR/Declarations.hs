@@ -119,22 +119,18 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		let defs = AST.moduleDefinitions llvmModuleState
 		let fnargs = extractFnArgs typeDefs declr
 		let tp = qualifiedTypeToType [] $ declType declSpecs
+		let argumentSymbols = map (\ (t,n@(AST.Name ns)) -> (ns, LocalReference t n)) fnargs
+		let initialCodeGenState ds = emptyCodegen {
+			symboltables = [argumentSymbols, buildGlobalSymbolTable ds]
+		}
+		let bls ds = createBlocks $ execCodegen (initialCodeGenState ds) $ do
+			entryB <- addBlock entryBlockName
+			setBlock entryB
+			generateStatement stat
 		define tp name fnargs (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
 		name = extractDeclrName declr
-		_args = []
-
-		--TODO add function arguments to symbol table, it's next prio on OSX
-		initialCodeGenState ds = emptyCodegen {
-			symboltables = [buildGlobalSymbolTable ds]
-		}
-
-		bls ds = createBlocks $ execCodegen (initialCodeGenState ds) $ do
-			entryB <- addBlock entryBlockName
-			setBlock entryB
-			-- generate argument code here
-			generateStatement stat
 
 extractDeclrName :: CDeclr -> String
 extractDeclrName (CDeclr ident _ _ _ _) = maybe "anonymous" (\ (Ident n _ _) -> n) ident
