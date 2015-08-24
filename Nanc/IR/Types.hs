@@ -20,6 +20,7 @@ qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
 qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
 qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
+qualifiedTypeToType m (QualifiedType (FT ft) qs) = functionTypeToType m ft qs
 qualifiedTypeToType _ qt = trace ("Unimplemented type: " ++ show qt) undefined
 
 simpleTypeToType :: SimpleType -> TypeQualifiers -> Type
@@ -39,6 +40,11 @@ complexTypeToType defs t@(Struct _ decls _) _ = StructureType False (map ((quali
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
 complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined
+
+-- TODO Support varargs!
+functionTypeToType defs (Nanc.AST.FunctionType rt args) _ = LLVM.General.AST.FunctionType (qualifiedTypeToType defs rt) (argTypes) False
+	where
+		argTypes = map ((qualifiedTypeToType defs).fst) args
 
 lookupType :: TypeDefinitions -> String -> QualifiedType
 lookupType types name = case find (\ (n, typ) -> n == name) types of
