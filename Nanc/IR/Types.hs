@@ -35,7 +35,7 @@ simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefi
 --}
 
 complexTypeToType :: TypeDefinitions -> ComplexType -> TypeQualifiers -> Type
-complexTypeToType _ (CSU _ _) _ = StructureType False []
+complexTypeToType _ t@(Struct _ _ _) _ = trace ("Can't define structures: " ++ (show t) ++ "\n\n") $ StructureType False []
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
 complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined

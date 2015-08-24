@@ -41,7 +41,7 @@ buildDeclaration decl@(CDecl specs [] _) =
 		}
 		ds = buildDeclarationSpecs specs
 		name = head $ catMaybes [structName (declType ds), Just "AnonymousDeclaration"]
-		structName (QualifiedType (CT (CSU (CStruct CStructTag (Just (Ident name _ _)) _ _ _) _)) _) = Just name
+		structName (QualifiedType (CT (Struct (Just name) _ _)) _) = Just name
 		structName _ = Nothing
 
 buildDeclaration decl = trace ("Weird declaration: " ++ (show $ decl)) undefined
@@ -144,7 +144,7 @@ buildDeclarationSpecs specs = updateTypeQual (build emptyDeclarationSpec specs) 
 				parse (CFloatType n) = (ST Float, n)
 				parse (CBoolType n) = (ST Bool, n)
 				parse (CComplexType n) = trace ("What the hell is a ComplexType? " ++ (show n)) undefined
-				parse (CSUType u n) = (CT (CSU u []), n)
+				parse (CSUType u n) = (parseStruct u, n)
 				parse (CEnumType e n) = (CT (E e), n)
 				parse (CTypeDef (Ident name _ _) n) = (CT (TD name), n)
 				parse (CTypeOfExpr e n) = (CT (TOE e), n)
@@ -171,6 +171,12 @@ buildDeclarationSpecs specs = updateTypeQual (build emptyDeclarationSpec specs) 
 				parse (CSignedType n) = parse (CIntType n)
 				parse (CUnsigType n) = parse (CIntType n)
 
+				parseStruct (CStruct CStructTag (maybeIdent) (Just decls) attrs _) = CT (Struct (parseMaybeIdent maybeIdent) (map buildDeclaration decls) attrs)
+				parseStruct (CStruct CStructTag (maybeIdent) Nothing attrs _) = ST Void
+				parseStruct s@(CStruct CUnionTag Nothing (Just decls) attrs _) = CT (Union (map buildDeclaration decls) attrs)
+
+				parseMaybeIdent (Just (Ident s _ _)) = Just s
+				parseMaybeIdent Nothing = Nothing
 
 				hasSigned = any isSignedT tspecs
 				isSignedT (CSignedType _) = True

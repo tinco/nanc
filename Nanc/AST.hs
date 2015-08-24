@@ -30,7 +30,7 @@ data SimpleType =
 	Void
 	deriving (Show)
 
-data ComplexType = CSU CStructUnion [CAttr] | E CEnum | TD String | TOE CExpr | TOT CDecl deriving (Show)
+data ComplexType = Struct (Maybe String) [Declaration] [CAttr] | Union [Declaration] [CAttr] | E CEnum | TD String | TOE CExpr | TOT CDecl deriving (Show)
 
 data FunctionType = FunctionType QualifiedType [(QualifiedType, String)] deriving (Show)
 

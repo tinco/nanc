@@ -5,6 +5,7 @@ import Data.Maybe
 
 import Language.C
 import Language.C.Data.Ident
+import Language.C.Pretty
 
 import qualified LLVM.General.AST as AST
 
@@ -73,6 +74,7 @@ generateExpression (CBinary op leftExpr rightExpr _) = do
 generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	(_, Just addr) <- generateExpression subjectExpr
 	let t = operandToType addr
+
 	trace ("I don't know how to do CMember: " ++ (show subjectExpr) ++ " -- " ) $ trace (show t) $ undefined
 
 -- (CConst (CCharConst '\n' ()))
