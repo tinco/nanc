@@ -17,7 +17,7 @@ type TypeDefinitions = [(String, QualifiedType)]
 qualifiedTypeToType :: TypeDefinitions -> QualifiedType -> Type
 qualifiedTypeToType _ (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
-qualifiedTypeToType m (QualifiedType (Ptr qt@(QualifiedType (FT _) _)) qs) = trace ("Pointer to: " ++ (show (qualifiedTypeToType m qt))) $ undefined
+qualifiedTypeToType m (QualifiedType (Ptr qt@(QualifiedType (FT _) _)) qs) = trace ("Pointer to: " ++ (show (qualifiedTypeToType m qt))) $ PointerType (IntegerType 64) (AddrSpace 0)
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
 qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
 qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
