@@ -27,7 +27,7 @@ generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefi
 
 generateBlockItem :: CBlockItem -> Codegen ()
 generateBlockItem (CBlockStmt stat) = generateStatement stat
-generateBlockItem _ = trace "unknown generate block item" $ undefined
+generateBlockItem _ = trace "unknown generate block item: " $ undefined
 
 generateIfStatement :: CExpr -> CStat -> Maybe CStat -> Codegen ()
 generateIfStatement condition trueStat maybeElseStat = do

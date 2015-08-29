@@ -20,7 +20,9 @@ main = do
 	parsed <- parseMyFile "test.c"
 	--printMyAST parsed
 
+	putStrLn "Going to generate ast"
 	let ast = generate "test" parsed
+	putStrLn $ "Generated external declarations: " ++ (show ast)
 
 	withContext $ \x -> liftError $ withModuleFromAST x ast $ \m -> do
 		ir <- moduleLLVMAssembly m

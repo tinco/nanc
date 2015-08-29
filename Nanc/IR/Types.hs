@@ -17,7 +17,7 @@ type TypeDefinitions = [(String, QualifiedType)]
 qualifiedTypeToType :: TypeDefinitions -> QualifiedType -> Type
 qualifiedTypeToType _ (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
-qualifiedTypeToType m (QualifiedType (Ptr qt@(QualifiedType (FT _) _)) qs) = trace ("Pointer to: " ++ (show (qualifiedTypeToType m qt))) $ PointerType (IntegerType 64) (AddrSpace 0)
+qualifiedTypeToType m (QualifiedType (Ptr qt@(QualifiedType (FT _) _)) qs) = trace "Dodgy function pointer" $ PointerType (IntegerType 64) (AddrSpace 0)
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
 qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
 qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
@@ -28,6 +28,7 @@ simpleTypeToType :: SimpleType -> TypeQualifiers -> Type
 simpleTypeToType SignedInt _ = IntegerType 32
 simpleTypeToType Void _ = VoidType
 simpleTypeToType SignedLongLongInt _ = IntegerType 64
+simpleTypeToType SignedShortInt _ = IntegerType 16
 simpleTypeToType Char _ = IntegerType 8
 simpleTypeToType UnsignedLongInt _ = IntegerType 64
 simpleTypeToType UnsignedInt _ = IntegerType 32

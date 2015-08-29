@@ -30,13 +30,13 @@ data SimpleType =
 	Void
 	deriving (Show)
 
-data ComplexType = Struct (Maybe String) [Declaration] [CAttr] | Union [Declaration] [CAttr] | E CEnum | TD String | TOE CExpr | TOT CDecl deriving (Show)
+data ComplexType = Struct !(Maybe String) ![Declaration] ![CAttr] | Union ![Declaration] ![CAttr] | E !CEnum | TD !String | TOE !CExpr | TOT !CDecl deriving (Show)
 
-data FunctionType = FunctionType QualifiedType [(QualifiedType, String)] deriving (Show)
+data FunctionType = FunctionType !QualifiedType ![(QualifiedType, String)] deriving (Show)
 
-data TypeSpec = Ptr QualifiedType | CT ComplexType | ST SimpleType | FT FunctionType | Arr Word64 QualifiedType | NoTypeSpec | TypeType deriving (Show)
+data TypeSpec = Ptr !QualifiedType | CT !ComplexType | ST !SimpleType | FT !FunctionType | Arr !Word64 !QualifiedType | NoTypeSpec | TypeType deriving (Show)
 
-data QualifiedType = QualifiedType TypeSpec TypeQualifiers deriving (Show)
+data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers deriving (Show)
 
 isNoTypeSpec :: QualifiedType -> Bool
 isNoTypeSpec (QualifiedType NoTypeSpec _) = True

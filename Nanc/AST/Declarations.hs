@@ -15,8 +15,7 @@ import Nanc.AST
 
 buildDeclaration :: CDecl -> Declaration
 buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmName attrs _),_,_)] _) =
---	trace "Going to run buildDeclaration" $
---	trace ("DeclName: " ++ name)
+	-- trace ("DeclName: " ++ name) $
 	result
 	where
 		result = Declaration {
@@ -30,8 +29,7 @@ buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmNa
 {- CDecl [CTypeSpec (CTypeDef (Ident "size_t" 213839698))] [] -}
 -- This is a declaration with just a typespecifier and no extra information
 buildDeclaration decl@(CDecl specs [] _) =
---	trace "Going to run buildDeclaration" $
---	trace ("DeclName: " ++ name)
+	-- trace ("DeclName: " ++ name) $
 	result
 	where
 		result = Declaration {
@@ -72,7 +70,7 @@ buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 
 		-- Super hacky: As long as we don't have a way to eval const expressions we'll just assume arrays have a huge length. Hopefully
 		-- that will just work...
-		buildArrType qt (CArrDeclr qs _ _) = trace "We need a constEval for cexpressions in CArrDeclr" $ QualifiedType (Arr 10000 qt) (fst $ buildTypeQualifiers qs)
+		buildArrType qt (CArrDeclr qs _ _) = trace ("We need a constEval for cexpressions in CArrDeclr") $ QualifiedType (Arr 10000 qt) (fst $ buildTypeQualifiers qs)
 
 {-
   CPtrDeclr [CTypeQualifier a] a	= Pointer declarator CPtrDeclr tyquals declr
@@ -143,7 +141,7 @@ buildDeclarationSpecs specs = updateTypeQual (build emptyDeclarationSpec specs) 
 				parse (CVoidType n) = (ST Void, n)
 				parse (CFloatType n) = (ST Float, n)
 				parse (CBoolType n) = (ST Bool, n)
-				parse (CComplexType n) = trace ("What the hell is a ComplexType? " ++ (show n)) undefined
+				parse (CComplexType n) = trace ("What the hell is a ComplexType?: " ++ (show n)) undefined
 				parse (CSUType u n) = (parseStruct u, n)
 				parse (CEnumType e n) = (CT (E e), n)
 				parse (CTypeDef (Ident name _ _) n) = (CT (TD name), n)

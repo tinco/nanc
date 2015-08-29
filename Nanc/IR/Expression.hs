@@ -78,8 +78,8 @@ generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression (CConst c) = trace "I don't know how to do CConst" undefined
-generateExpression (CCast decl expr _) = trace "I don't know how to do CCast" undefined
+generateExpression (CConst c) = trace "I don't know how to do CConst: " undefined
+generateExpression (CCast decl expr _) = trace "I don't know how to do CCast: " undefined
 
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
 
@@ -91,14 +91,14 @@ binaryOp CLndOp a b = binInstr AST.And a b
 binaryOp CNeqOp a b
 	| isInteger a && isInteger b = intNeq
 	| isFloat a && isFloat b = fNeq
-	| otherwise = trace ("Binary expression on non-float non-integer types or mixed") undefined
+	| otherwise = trace ("Binary expression on non-float non-integer types or mixed:") undefined
 	where
 		intNeq = do
 			r <- binInstr AST.And a b
 			notInstr r
-		fNeq = trace ("I dont know how to compare floats yet") undefined
+		fNeq = trace ("I dont know how to compare floats yet: ") undefined
 
-binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp") undefined
+binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp: ") undefined
 
 intConst :: Integer -> AST.Operand
 intConst = AST.ConstantOperand . (C.Int 32)

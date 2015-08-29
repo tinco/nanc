@@ -31,7 +31,7 @@ External declarations can either be a toplevel declaration, a function definitio
 generateExtDecl :: CExtDecl -> Module ()
 generateExtDecl (CDeclExt decl) = generateToplevelDecl decl
 generateExtDecl (CFDefExt decl) = generateFunDef decl
-generateExtDecl (CAsmExt _decl _) = trace "ASM" $ undefined
+generateExtDecl (CAsmExt _decl _) = trace "ASM:" $ undefined
 
 {-
 C99 requires that there is at least one specifier, though this is merely a syntactic restriction
@@ -42,7 +42,7 @@ generateToplevelDecl :: CDecl -> Module ()
 generateToplevelDecl decl
 	| isExtern && isFunction = trace "ExternFunction" $ generateExternFunction declaration
 	| isExtern = trace "ExternVariable" $ generateExternVariable declaration
-	| isTypedef = generateTypedef declaration
+	| isTypedef = trace "TypeDef" $ generateTypedef declaration
 	| isStatic = trace "StaticDecl" $ generateStaticDecl declaration
 	| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
 	where
@@ -67,10 +67,9 @@ generateExternVariable :: Declaration -> Module ()
 generateExternVariable declaration = trace ("Non function extern: " ++ (show $ declarationName declaration)) $ return ()
 
 generateTypedef :: Declaration -> Module ()
-generateTypedef declaration = trace ("Typedef: " ++ (show name)) $ do
+generateTypedef declaration = do
 		defs <- gets typeDefinitions
 		modify $ \s -> s { typeDefinitions = defs ++ [(name, declarationType declaration)] }
-		return ()
 	where
 		name = declarationName declaration	
 
