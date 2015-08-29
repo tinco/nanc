@@ -2,3 +2,5 @@
 cabal.sandbox.config
 *.swp
 dist/
+.DS_STORE
+.stack-work
