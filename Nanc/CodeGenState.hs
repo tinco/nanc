@@ -22,7 +22,8 @@ import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
 import qualified LLVM.General.AST.Constant as C
 
-type SymbolTable = [(String, Operand)]
+type Symbol = (Operand, QualifiedType)
+type SymbolTable = [(String, Symbol)]
 
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
@@ -184,18 +185,18 @@ local n t = LocalReference t n
 externf :: Name -> Type -> Operand
 externf n t = ConstantOperand . C.GlobalReference t $ n
 
-assign :: String -> Operand -> Codegen ()
+assign :: String -> Symbol -> Codegen ()
 assign var x = do
 	symtabs <- gets symboltables
 	modify $ \s -> s { symboltables = ([(var, x)] ++ (head symtabs)) : (tail symtabs) }
 
-symbolLookup :: String -> [SymbolTable] -> Maybe Operand
+symbolLookup :: String -> [SymbolTable] -> Maybe Symbol
 symbolLookup name (t:rest) = case lookup name t of
 	Just operand -> Just operand
 	Nothing -> symbolLookup name rest
 symbolLookup _ [] = Nothing
 
-getvar :: String -> Codegen Operand
+getvar :: String -> Codegen Symbol
 getvar var = do
   symtabs <- gets symboltables
   case symbolLookup var symtabs of

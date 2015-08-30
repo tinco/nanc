@@ -3,6 +3,8 @@ module Nanc.IR.Expression where
 import Debug.Trace
 import Data.Maybe
 
+import Control.Monad
+
 import Language.C
 import Language.C.Data.Ident
 import Language.C.Pretty
@@ -18,7 +20,8 @@ import qualified LLVM.General.AST.Constant as C
 
 generateExpression :: CExpr -> Codegen (
 		AST.Operand,      -- return value
-		Maybe AST.Operand -- address if value has an address
+		Maybe AST.Operand, -- address if value has an address
+		QualifiedType -- Type of return value
 	)
 -- var()
 generateExpression (CCall fn' args' _) = do
@@ -29,51 +32,52 @@ generateExpression (CCall fn' args' _) = do
 
 -- var
 generateExpression (CVar (Ident name _ _) _) = do
-	address <- getvar name
-	let t = operandToType address
+	(address, typ) <- getvar name
+	let t = qualifiedTypeToType undefined typ
 	value <- load (AST.pointerReferent t) address
-	return (value, Just address)
+	return (value, Just address, typ)
 
 -- var = bar
 generateExpression (CAssign CAssignOp leftExpr rightExpr _) = do
-	(_, Just addr) <- generateExpression leftExpr
-	(val, _) <- generateExpression rightExpr
-	let t = operandToType val
+	(_, Just addr, _) <- generateExpression leftExpr
+	(val, _, typ) <- generateExpression rightExpr
+	let t = qualifiedTypeToType undefined typ
 	store t addr val
-	return (val, Nothing)
+	return (val, Nothing, typ)
 
 -- *var
 generateExpression (CUnary CIndOp expr _) = do
-	(_, Just addr) <- generateExpression expr
-	return (addr, Nothing)
+	(_, Just addr, typ) <- generateExpression expr
+	return (addr, Nothing, typ)
 
 -- var++
 generateExpression (CUnary CPostIncOp expr _) = do
-	(val, Just addr) <- generateExpression expr
-	let t = operandToType val
+	(val, Just addr, typ) <- generateExpression expr
+	let t = qualifiedTypeToType undefined typ
 	inc_val <- add t val (intConst 1)
 	store t addr inc_val
-	return (val, Nothing)
+	return (val, Nothing, typ)
 
 -- --var;
 generateExpression (CUnary CPreDecOp expr _) = do
-	(val, Just addr) <- generateExpression expr
-	let t = operandToType val
+	(val, Just addr, typ) <- generateExpression expr
+	let t = qualifiedTypeToType undefined typ
 	dec_val <- add t val (intConst (-1))
 	store t addr dec_val
-	return (dec_val, Nothing)
+	return (dec_val, Nothing, typ)
 
 --  Binary expressions
 generateExpression (CBinary op leftExpr rightExpr _) = do
-	(leftVal, _) <- generateExpression leftExpr
-	(rightVal, _) <- generateExpression rightExpr
-	result <- binaryOp op leftVal rightVal
-	return (result, Nothing)
+	(leftVal, _, typ) <- generateExpression leftExpr
+	(rightVal, _, typ2) <- generateExpression rightExpr
+	-- TODO: refactor binaryop to return the type
+	(result, t) <- binaryOp op (leftVal, typ) (rightVal, typ2)
+	return (result, Nothing, t)
 
 -- CVar (Ident "_p" 14431 n) n
 generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
-	(_, Just addr) <- generateExpression subjectExpr
-	let t = operandToType addr
+	(_, Just addr,t) <- generateExpression subjectExpr
+
 	trace ("I don't know how to do CMember: " ++ (show subjectExpr) ++ " -- " ) $ trace (show t) $ undefined
 
 -- (CConst (CCharConst '\n' ()))
@@ -85,17 +89,17 @@ generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
 
 
 -- choose between icmp and fcmp
-binaryOp :: CBinaryOp -> AST.Operand -> AST.Operand -> Codegen AST.Operand
-binaryOp CLorOp a b = binInstr AST.Or a b
-binaryOp CLndOp a b = binInstr AST.And a b
-binaryOp CNeqOp a b
-	| isInteger a && isInteger b = intNeq
-	| isFloat a && isFloat b = fNeq
+binaryOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen (AST.Operand, QualifiedType)
+binaryOp CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a) 
+binaryOp CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
+binaryOp CNeqOp a'@(a,t) b'@(b,_)
+	| isInteger a && isInteger b = liftM2 (,) (intNeq) (return t)
+	| isFloat a && isFloat b = liftM2 (,) (fNeq) (return t)
 	| otherwise = trace ("Binary expression on non-float non-integer types or mixed:") undefined
 	where
 		intNeq = do
-			r <- binInstr AST.And a b
-			notInstr r
+			r <- binInstr AST.And a' b'
+			(notInstr r)
 		fNeq = trace ("I dont know how to compare floats yet: ") undefined
 
 binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp: ") undefined

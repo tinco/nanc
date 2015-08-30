@@ -26,7 +26,7 @@ instr t ins = do
 	modifyBlock $ blk { stack = i ++ [ref := ins] }
 	return $ local ref t
 
-binInstr op a b = instr (IntegerType 1) $ op a b []
+binInstr op a b = instr (IntegerType 1) $ op (fst a) (fst b) []
 
 notInstr a = instr (IntegerType 1) $ Xor a (ConstantOperand $ C.Int 1 1) []
 

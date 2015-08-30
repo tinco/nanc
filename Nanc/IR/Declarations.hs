@@ -91,14 +91,14 @@ generateStaticDecl decl = do
 					}
 		addDefn def
 
-buildGlobalSymbolTable :: [AST.Definition] -> [(String, AST.Operand)]
+buildGlobalSymbolTable :: [AST.Definition] -> [(String, Symbol)]
 buildGlobalSymbolTable [] = []
 buildGlobalSymbolTable ((AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
 	where
-		b :: Global -> (String, AST.Operand)
-		b (GlobalVariable n@(AST.Name name) _ _ _ _ _ _ t _ _ _) = (name, ConstantOperand $ C.GlobalReference t n)
+		b :: Global -> (String, Symbol)
+		b (GlobalVariable n@(AST.Name name) _ _ _ _ _ _ t _ _ _) = trace "GlobalVariables are going wrong:" $ (name, (ConstantOperand $ C.GlobalReference t n, undefined))
 		b (GlobalAlias (AST.Name name) _ _ _ _) = trace ("unsupported global alias: " ++ name) (name, undefined)
-		b (Function _ _ _ _ t n@(AST.Name name) _ _ _ _ _ _) = (name, ConstantOperand $ C.GlobalReference t n)
+		b (Function _ _ _ _ t n@(AST.Name name) _ _ _ _ _ _) = trace "Function variables are going wrong: " $ (name, (ConstantOperand $ C.GlobalReference t n, undefined))
 {- GlobalVariable Name Linkage Visibility Bool AddrSpace Bool Bool Type (Maybe Constant) (Maybe String) Word32	
    GlobalAlias Name Linkage Visibility Type Constant	
    Function Linkage Visibility CallingConvention [ParameterAttribute] Type Name ([Parameter], Bool) [FunctionAttribute] (Maybe String) Word32 (Maybe String) [BasicBlock] -}
@@ -118,7 +118,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		let defs = AST.moduleDefinitions llvmModuleState
 		let fnargs = extractFnArgs typeDefs declr
 		let tp = qualifiedTypeToType [] $ declType declSpecs
-		let argumentSymbols = map (\ (t,n@(AST.Name ns)) -> (ns, LocalReference t n)) fnargs
+		let argumentSymbols = trace "inserted undefined type here: " $ map (\ (t,n@(AST.Name ns)) -> (ns, (LocalReference t n, undefined))) fnargs
 		let initialCodeGenState ds = emptyCodegen {
 			symboltables = [argumentSymbols, buildGlobalSymbolTable ds]
 		}

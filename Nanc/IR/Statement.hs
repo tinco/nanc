@@ -17,10 +17,13 @@ import Nanc.IR.Types
 import Nanc.IR.Expression
 import Nanc.IR.Instructions
 
+fst3 :: (a, b, c) -> a
+fst3 (x, _, _) = x
+
 generateStatement :: CStat -> Codegen ()
 generateStatement (CExpr expr _) = void $ generateExpression (fromJust expr)
 generateStatement (CReturn Nothing _)= void $ ret Nothing
-generateStatement (CReturn (Just expr) _) = void $ generateExpression expr >>= ret . Just . fst
+generateStatement (CReturn (Just expr) _) = void $ generateExpression expr >>= ret . Just . fst3
 generateStatement (CCompound _ident items _) = mapM_ generateBlockItem items
 generateStatement (CIf expr trueStat maybeElseStat _) = generateIfStatement expr trueStat maybeElseStat
 generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
@@ -37,7 +40,7 @@ generateIfStatement condition trueStat maybeElseStat = do
 
 	-- %entry
 	------------------
-	(cond, _) <- generateExpression condition
+	(cond, _, _) <- generateExpression condition
 	cbr cond ifthen ifelse
 
 	-- if.then
