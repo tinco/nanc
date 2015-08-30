@@ -2,6 +2,7 @@ module Nanc.IR.Expression where
 
 import Debug.Trace
 import Data.Maybe
+import Data.List
 
 import Control.Monad
 
@@ -76,9 +77,14 @@ generateExpression (CBinary op leftExpr rightExpr _) = do
 
 -- CVar (Ident "_p" 14431 n) n
 generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
-	(_, Just addr,t) <- generateExpression subjectExpr
-
-	trace ("I don't know how to do CMember: " ++ (show subjectExpr) ++ " -- " ) $ trace (show t) $ undefined
+	(_, Just addr, typ) <- generateExpression subjectExpr
+	let (QualifiedType  (CT (Struct _ members _)) _) = typ
+	let i = head $ elemIndices memName $ map (declarationName) members
+	let resultType = declarationType $ members !! i
+	let t = qualifiedTypeToType undefined resultType
+	let idx = intConst (fromIntegral i)
+	result <- instr t (AST.GetElementPtr True addr [idx] [])
+	return (result, Nothing, resultType)
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
@@ -105,7 +111,13 @@ binaryOp CNeqOp a'@(a,t) b'@(b,_)
 binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp: ") undefined
 
 intConst :: Integer -> AST.Operand
-intConst = AST.ConstantOperand . (C.Int 32)
+intConst = intConst32
+
+intConst32 :: Integer -> AST.Operand
+intConst32 = AST.ConstantOperand . (C.Int 32)
+
+intConst64 :: Integer -> AST.Operand
+intConst64 = AST.ConstantOperand . (C.Int 64)
 
 isInteger :: AST.Operand -> Bool
 isInteger (AST.LocalReference (AST.IntegerType _) _) = True
