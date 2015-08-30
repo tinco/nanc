@@ -83,8 +83,9 @@ generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	let resultType = declarationType $ members !! i
 	let t = qualifiedTypeToType undefined resultType
 	let idx = intConst (fromIntegral i)
-	result <- instr t (AST.GetElementPtr True addr [idx] [])
-	return (result, Nothing, resultType)
+	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
+	value <- load (AST.pointerReferent t) resultAddr
+	return (value, Just resultAddr, resultType)
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
