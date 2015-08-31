@@ -4,11 +4,12 @@ import Language.C.Data.Ident
 import Language.C.Syntax
 import GHC.Stack
 
-import LLVM.General.AST hiding (Module)
+import LLVM.General.AST as LLVM hiding (Module)
 import LLVM.General.AST.AddrSpace
 
 import Nanc.AST
 import Data.List
+import Data.Word
 
 import Debug.Trace
 
@@ -43,10 +44,16 @@ complexTypeToType :: TypeDefinitions -> ComplexType -> TypeQualifiers -> Type
 complexTypeToType defs t@(Struct _ decls _) _ = StructureType False (map ((qualifiedTypeToType defs).declarationType) decls)
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
 complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
+complexTypeToType defs (Union decls _) _ = StructureType False (arrs ++ [datafield])
+	where
+		types = map ((qualifiedTypeToType defs).declarationType) decls
+		arrs =  map (ArrayType 0) types
+		maxSize = maximum $ map sizeof types
+		datafield = ArrayType maxSize (IntegerType 8)
 complexTypeToType _ t _ = trace ("Unimplemented complex type: " ++ (show t)) undefined
 
 -- TODO Support varargs!
-functionTypeToType defs (Nanc.AST.FunctionType rt args) _ = LLVM.General.AST.FunctionType (qualifiedTypeToType defs rt) (argTypes) False
+functionTypeToType defs (Nanc.AST.FunctionType rt args) _ = LLVM.FunctionType (qualifiedTypeToType defs rt) (argTypes) False
 	where
 		argTypes = map ((qualifiedTypeToType defs).fst) args
 
@@ -54,3 +61,15 @@ lookupType :: TypeDefinitions -> String -> QualifiedType
 lookupType types name = case find (\ (n, typ) -> n == name) types of
 	Just (name, typ) -> typ
 	Nothing ->  errorWithStackTrace ("Referenced undeclared type: " ++ name ++ "\n in: " ++ (show types))
+
+sizeof :: Type -> Word64
+sizeof (IntegerType i) = ( (fromIntegral i) - 1) `quot` 8 + 1
+sizeof VoidType = 0
+sizeof (PointerType _ _) = 8 -- or 4?
+sizeof (FloatingPointType i _) = ((fromIntegral i) - 1) `quot` 8 + 1
+sizeof (LLVM.FunctionType _ _ _) = trace "Functions don't have a size." undefined
+sizeof (VectorType n t) = (fromIntegral n) * (sizeof t)
+sizeof (StructureType False ts) = sum $ map sizeof ts
+sizeof (StructureType True _) = trace "Don't know how to calculate size of packed struct." undefined
+sizeof (ArrayType n t) = (fromIntegral n) * (sizeof t)
+sizeof t = trace ("Can't determine sizeof unknown type " ++ (show t)) undefined
