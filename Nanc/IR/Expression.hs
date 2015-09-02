@@ -89,7 +89,8 @@ generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression (CConst c) = trace "I don't know how to do CConst: " undefined
+generateExpression (CConst (CIntConst (CInteger i _ _) _)) = return (intConst64 $ fromIntegral i, Nothing, QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True }))
+generateExpression (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
 generateExpression (CCast decl expr _) = trace "I don't know how to do CCast: " undefined
 
 generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
