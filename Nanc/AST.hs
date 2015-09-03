@@ -59,6 +59,9 @@ data TypeQualifiers = TypeQualifiers {
 defaultTypeQualifiers :: TypeQualifiers
 defaultTypeQualifiers = TypeQualifiers False False False False
 
+constTypeQualifiers :: TypeQualifiers
+constTypeQualifiers = defaultTypeQualifiers { typeIsConst = True }
+
 data DeclarationSpecs = DeclarationSpecs {
 	declStorage :: StorageSpec,
 	declType :: QualifiedType,

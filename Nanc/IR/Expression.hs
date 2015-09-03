@@ -3,6 +3,7 @@ module Nanc.IR.Expression where
 import Debug.Trace
 import Data.Maybe
 import Data.List
+import Data.Char
 
 import Control.Monad
 
@@ -89,7 +90,16 @@ generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression (CConst (CIntConst (CInteger i _ _) _)) = return (intConst64 $ fromIntegral i, Nothing, QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True }))
+generateExpression (CConst (CIntConst (CInteger i _ _) _)) = return (result, Nothing, typ)
+	where
+		result = intConst64 $ fromIntegral i
+		typ = QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True })
+
+generateExpression (CConst (CStrConst (CString str _) _)) = return (result, Nothing, typ)
+	where
+		result = AST.ConstantOperand $ C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
+		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
+
 generateExpression (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
 generateExpression (CCast decl expr _) = trace "I don't know how to do CCast: " undefined
 
