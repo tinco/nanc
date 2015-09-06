@@ -11,7 +11,12 @@ import qualified LLVM.General.AST.CallingConvention as CC
 import LLVM.General.AST.AddrSpace
 import qualified LLVM.General.AST.Constant as C
 
+
+import qualified LLVM.General.AST.IntegerPredicate as I
+import qualified LLVM.General.AST.FloatingPointPredicate as F
+
 import Nanc.CodeGenState
+import Nanc.IR.Types
 
 -- IEEE 754 double
 double :: Type
@@ -41,6 +46,15 @@ toArgs = map (\x -> (x, []))
 
 add :: Type -> Operand -> Operand -> Codegen Operand
 add t a b = instr t $ Add False False a b []
+
+sub :: Type -> Operand -> Operand -> Codegen Operand
+sub t a b = instr t $ Sub False False a b []
+
+icmp :: I.IntegerPredicate -> Operand -> Operand -> Codegen Operand
+icmp p a b = instr booleanType $ ICmp p a b []
+
+fcmp :: F.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
+fcmp p a b = instr booleanType $ FCmp p a b []
 
 fadd :: Operand -> Operand -> Codegen Operand
 fadd a b = instr double $ FAdd NoFastMathFlags a b []

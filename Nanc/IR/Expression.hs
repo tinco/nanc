@@ -10,8 +10,12 @@ import Control.Monad
 import Language.C
 import Language.C.Data.Ident
 import Language.C.Pretty
+import Language.C.Syntax.AST
 
 import qualified LLVM.General.AST as AST
+
+import qualified LLVM.General.AST.IntegerPredicate as I
+import qualified LLVM.General.AST.FloatingPointPredicate as F
 
 import Nanc.CodeGenState
 import Nanc.AST
@@ -110,17 +114,28 @@ generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
 binaryOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen (AST.Operand, QualifiedType)
 binaryOp CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a) 
 binaryOp CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
-binaryOp CNeqOp a'@(a,t) b'@(b,_)
-	| isInteger a && isInteger b = liftM2 (,) (intNeq) (return t)
-	| isFloat a && isFloat b = liftM2 (,) (fNeq) (return t)
-	| otherwise = trace ("Binary expression on non-float non-integer types or mixed:") undefined
-	where
-		intNeq = do
-			r <- binInstr AST.And a' b'
-			(notInstr r)
-		fNeq = trace ("I dont know how to compare floats yet: ") undefined
+binaryOp CNeqOp a b = liftM2 (,) (cmpOp CNeqOp a b) (return defaultBooleanType)
+binaryOp CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType)
 
-binaryOp CGeqOp a b = trace ("I don't know how to do CGeqOp: ") undefined
+cmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
+cmpOp cmp a@(a',_) b | isInteger a' = iCmpOp cmp a b
+                     | otherwise = fCmpOp cmp a b
+
+iCmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
+iCmpOp cmp (a,t) (b,_) = icmp (iOpToPred (isSigned t) cmp) a b
+
+fCmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
+fCmpOp cmp (a,t) (b,_) = fcmp (fOpToPred cmp) a b 
+
+data FloatOrInt = Floaty | Intty
+iOpToPred :: Bool -> CBinaryOp -> I.IntegerPredicate
+iOpToPred _ CNeqOp = I.NE
+iOpToPred True CGeqOp = I.SGE
+iOpToPred False CGeqOp = I.UGE
+
+fOpToPred :: CBinaryOp -> F.FloatingPointPredicate
+fOpToPred CGeqOp = F.UEQ
+fOpToPred CNeqOp = F.UNE
 
 intConst :: Integer -> AST.Operand
 intConst = intConst32

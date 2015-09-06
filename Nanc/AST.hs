@@ -38,6 +38,8 @@ data TypeSpec = Ptr !QualifiedType | CT !ComplexType | ST !SimpleType | FT !Func
 
 data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers deriving (Show)
 
+data Signedness = Signed | Unsigned
+
 isNoTypeSpec :: QualifiedType -> Bool
 isNoTypeSpec (QualifiedType NoTypeSpec _) = True
 isNoTypeSpec _ = False
@@ -45,6 +47,21 @@ isNoTypeSpec _ = False
 isFunctionType :: QualifiedType -> Bool
 isFunctionType (QualifiedType (FT _) _) = True
 isFunctionType _ = False
+
+isSigned :: QualifiedType -> Bool
+isSigned (QualifiedType (ST c) _) = isSigned' c
+	where
+		isSigned' Char = True
+		isSigned' SignedChar = True
+		isSigned' SignedShortInt = True
+		isSigned' SignedInt = True
+		isSigned' SignedLongInt = True
+		isSigned' SignedLongLongInt = True
+		isSigned' Float = True
+		isSigned' Double = True
+		isSigned' LongDouble = True
+		isSigned' _ = False
+isSigned _ = False
 
 qualifiedTypeType :: QualifiedType -> TypeSpec
 qualifiedTypeType (QualifiedType t _) = t
@@ -58,6 +75,8 @@ data TypeQualifiers = TypeQualifiers {
 
 defaultTypeQualifiers :: TypeQualifiers
 defaultTypeQualifiers = TypeQualifiers False False False False
+
+defaultBooleanType = QualifiedType (ST Bool) defaultTypeQualifiers
 
 constTypeQualifiers :: TypeQualifiers
 constTypeQualifiers = defaultTypeQualifiers { typeIsConst = True }

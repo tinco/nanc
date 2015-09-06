@@ -15,6 +15,8 @@ import Debug.Trace
 
 type TypeDefinitions = [(String, QualifiedType)]
 
+booleanType = LLVM.IntegerType 1
+
 qualifiedTypeToType :: TypeDefinitions -> QualifiedType -> Type
 qualifiedTypeToType _ (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
