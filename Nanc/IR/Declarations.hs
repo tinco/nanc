@@ -126,10 +126,22 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 			entryB <- addBlock entryBlockName
 			setBlock entryB
 			generateStatement stat
+
+			if name == "main" then do
+				maybeReturnZero
+			else
+				return ()
+
 		define tp name fnargs (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
 		name = extractDeclrName declr
+
+maybeReturnZero = do
+	c <- current
+	case c of
+		(BlockState _ _ Nothing) -> zeroReturn
+		_ -> return ()
 
 extractDeclrName :: CDeclr -> String
 extractDeclrName (CDeclr ident _ _ _ _) = maybe "anonymous" (\ (Ident n _ _) -> n) ident

@@ -136,10 +136,10 @@ createBlocks :: CodegenState -> [BasicBlock]
 createBlocks m = map makeBlock $ sortBlocks $ Map.toList (blocks m)
 
 makeBlock :: (Name, BlockState) -> BasicBlock
-makeBlock (l, (BlockState _ s t)) = BasicBlock l s (maketerm t)
+makeBlock b@(l, (BlockState _ s t)) = BasicBlock l s (maketerm t)
 	where
 		maketerm (Just x) = x
-		maketerm Nothing = error $ "Block has no terminator: " ++ (show l)
+		maketerm Nothing = error $ "\n\nBlock has no terminator: " ++ (show b)
 
 sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
 sortBlocks = sortBy (compare `on` (idx . snd))

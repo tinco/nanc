@@ -28,6 +28,9 @@ generateStatement (CCompound _ident items _) = mapM_ generateBlockItem items
 generateStatement (CIf expr trueStat maybeElseStat _) = generateIfStatement expr trueStat maybeElseStat
 generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
 
+zeroReturn :: Codegen ()
+zeroReturn = void $ ret $ Just (intConst 0)
+
 generateBlockItem :: CBlockItem -> Codegen ()
 generateBlockItem (CBlockStmt stat) = generateStatement stat
 generateBlockItem _ = trace "unknown generate block item: " $ undefined
