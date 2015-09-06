@@ -125,7 +125,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		let bls ds = createBlocks $ execCodegen (initialCodeGenState ds) $ do
 			entryB <- addBlock entryBlockName
 			setBlock entryB
-			generateStatement stat
+			generateStatement typeDefs stat
 
 			if name == "main" then do
 				maybeReturnZero

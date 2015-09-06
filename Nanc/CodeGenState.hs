@@ -24,6 +24,7 @@ import qualified LLVM.General.AST.Constant as C
 
 type Symbol = (Operand, QualifiedType)
 type SymbolTable = [(String, Symbol)]
+type TypeTable = [(String, QualifiedType)]
 
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
@@ -46,7 +47,7 @@ data BlockState = BlockState {
 
 data ModuleState = ModuleState {
 	llvmModuleState :: AST.Module,
-	typeDefinitions :: [(String, QualifiedType)]
+	typeDefinitions :: TypeTable
 }
 
 newtype Codegen a = Codegen {
@@ -76,7 +77,7 @@ emptyModule label = ModuleState {
  - ASTContext.cpp -> CreateVaListDecl
  - < o11c> d-snp: https://raw.githubusercontent.com/gcc-mirror/gcc/master/gcc/config/i386/i386.c    and grep for    ix86_build_builtin_va_list_abi
  -}
-builtinTypeDefinitions :: [(String, QualifiedType)]
+builtinTypeDefinitions :: TypeTable
 builtinTypeDefinitions = [
 		("__builtin_va_list", QualifiedType (Ptr (QualifiedType (ST Char) defaultTypeQualifiers)) defaultTypeQualifiers)
 	]

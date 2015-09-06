@@ -17,36 +17,36 @@ import Nanc.IR.Types
 import Nanc.IR.Expression
 import Nanc.IR.Instructions
 
-generateStatement :: CStat -> Codegen ()
-generateStatement (CExpr expr _) = void $ generateExpression (fromJust expr)
-generateStatement (CReturn Nothing _)= void $ ret Nothing
-generateStatement (CReturn (Just expr) _) = void $ generateExpression expr >>= ret . Just . fst3
-generateStatement (CCompound _ident items _) = mapM_ generateBlockItem items
-generateStatement (CIf expr trueStat maybeElseStat _) = generateIfStatement expr trueStat maybeElseStat
-generateStatement _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
+generateStatement :: TypeTable -> CStat -> Codegen ()
+generateStatement ts (CExpr expr _) = void $ generateExpression ts (fromJust expr)
+generateStatement _ (CReturn Nothing _)= void $ ret Nothing
+generateStatement ts (CReturn (Just expr) _) = void $ generateExpression ts expr >>= ret . Just . fst3
+generateStatement ts (CCompound _ident items _) = mapM_ (generateBlockItem ts) items
+generateStatement ts (CIf expr trueStat maybeElseStat _) = generateIfStatement ts expr trueStat maybeElseStat
+generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
 
 zeroReturn :: Codegen ()
 zeroReturn = void $ ret $ Just (intConst 0)
 
-generateBlockItem :: CBlockItem -> Codegen ()
-generateBlockItem (CBlockStmt stat) = generateStatement stat
-generateBlockItem _ = trace "unknown generate block item: " $ undefined
+generateBlockItem :: TypeTable -> CBlockItem -> Codegen ()
+generateBlockItem ts (CBlockStmt stat) = generateStatement ts stat
+generateBlockItem _ _ = trace "unknown generate block item: " $ undefined
 
-generateIfStatement :: CExpr -> CStat -> Maybe CStat -> Codegen ()
-generateIfStatement condition trueStat maybeElseStat = do
+generateIfStatement :: TypeTable -> CExpr -> CStat -> Maybe CStat -> Codegen ()
+generateIfStatement ts condition trueStat maybeElseStat = do
 	ifthen <- addBlock "if.then"
 	ifelse <- addBlock "if.else"
 	ifexit <- addBlock "if.exit"
 
 	-- %entry
 	------------------
-	(cond, _, _) <- generateExpression condition
+	(cond, _, _) <- generateExpression ts condition
 	cbr cond ifthen ifelse
 
 	-- if.then
 	------------------
 	setBlock ifthen
-	generateStatement trueStat
+	generateStatement ts trueStat
 	br ifexit
 	ifthen <- getBlock
 
@@ -55,7 +55,7 @@ generateIfStatement condition trueStat maybeElseStat = do
 	case maybeElseStat of
 		Just elseState -> do
 			setBlock ifelse
-			generateStatement elseState
+			generateStatement ts elseState
 			br ifexit
 			ifelse <- getBlock
 			return ()

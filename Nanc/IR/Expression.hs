@@ -27,69 +27,68 @@ import qualified LLVM.General.AST.Constant as C
 fst3 :: (a, b, c) -> a
 fst3 (x, _, _) = x
 
-generateExpression :: CExpr -> Codegen (
+generateExpression :: TypeTable -> CExpr -> Codegen (
 		AST.Operand,      -- return value
 		Maybe AST.Operand, -- address if value has an address
 		QualifiedType -- Type of return value
 	)
 -- var()
-generateExpression (CCall fn' args' _) = do
-	args <- mapM generateExpression args'
-	(fn,_,t) <- generateExpression fn'
+generateExpression ts (CCall fn' args' _) = do
+	args <- mapM (generateExpression ts) args'
+	(fn,_,t) <- generateExpression ts fn'
 	result <- call fn (map fst3 args)
 	return (result, Nothing, returnType t)
 
 -- var
-generateExpression (CVar (Ident name _ _) _) = do
+generateExpression ts (CVar (Ident name _ _) _) = do
 	(address, typ) <- getvar name
-	let t = qualifiedTypeToType undefined typ
+	let t = qualifiedTypeToType ts typ
 	value <- load (AST.pointerReferent t) address
 	return (value, Just address, typ)
 
 -- var = bar
-generateExpression (CAssign CAssignOp leftExpr rightExpr _) = do
-	(_, Just addr, _) <- generateExpression leftExpr
-	(val, _, typ) <- generateExpression rightExpr
-	let t = qualifiedTypeToType undefined typ
+generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
+	(_, Just addr, _) <- generateExpression ts leftExpr
+	(val, _, typ) <- generateExpression ts rightExpr
+	let t = qualifiedTypeToType ts typ
 	store t addr val
 	return (val, Nothing, typ)
 
 -- *var
-generateExpression (CUnary CIndOp expr _) = do
-	(_, Just addr, typ) <- generateExpression expr
+generateExpression ts (CUnary CIndOp expr _) = do
+	(_, Just addr, typ) <- generateExpression ts expr
 	return (addr, Nothing, typ)
 
 -- var++
-generateExpression (CUnary CPostIncOp expr _) = do
-	(val, Just addr, typ) <- generateExpression expr
-	let t = qualifiedTypeToType undefined typ
+generateExpression ts (CUnary CPostIncOp expr _) = do
+	(val, Just addr, typ) <- generateExpression ts expr
+	let t = qualifiedTypeToType ts typ
 	inc_val <- add t val (intConst 1)
 	store t addr inc_val
 	return (val, Nothing, typ)
 
 -- --var;
-generateExpression (CUnary CPreDecOp expr _) = do
-	(val, Just addr, typ) <- generateExpression expr
-	let t = qualifiedTypeToType undefined typ
+generateExpression ts (CUnary CPreDecOp expr _) = do
+	(val, Just addr, typ) <- generateExpression ts expr
+	let t = qualifiedTypeToType ts typ
 	dec_val <- add t val (intConst (-1))
 	store t addr dec_val
 	return (dec_val, Nothing, typ)
 
 --  Binary expressions
-generateExpression (CBinary op leftExpr rightExpr _) = do
-	(leftVal, _, typ) <- generateExpression leftExpr
-	(rightVal, _, typ2) <- generateExpression rightExpr
-	-- TODO: refactor binaryop to return the type
+generateExpression ts (CBinary op leftExpr rightExpr _) = do
+	(leftVal, _, typ) <- generateExpression ts leftExpr
+	(rightVal, _, typ2) <- generateExpression ts rightExpr
 	(result, t) <- binaryOp op (leftVal, typ) (rightVal, typ2)
 	return (result, Nothing, t)
 
 -- CVar (Ident "_p" 14431 n) n
-generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
-	(_, Just addr, typ) <- generateExpression subjectExpr
+generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
+	(_, Just addr, typ) <- generateExpression ts subjectExpr
 	let (QualifiedType  (CT (Struct _ members _)) _) = typ
 	let i = head $ elemIndices memName $ map (declarationName) members
 	let resultType = declarationType $ members !! i
-	let t = qualifiedTypeToType undefined resultType
+	let t = qualifiedTypeToType ts resultType
 	let idx = intConst (fromIntegral i)
 	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
 	value <- load (AST.pointerReferent t) resultAddr
@@ -97,20 +96,20 @@ generateExpression (CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression (CConst (CIntConst (CInteger i _ _) _)) = return (result, Nothing, typ)
+generateExpression _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, Nothing, typ)
 	where
 		result = intConst64 $ fromIntegral i
 		typ = QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True })
 
-generateExpression (CConst (CStrConst (CString str _) _)) = return (result, Nothing, typ)
+generateExpression _ (CConst (CStrConst (CString str _) _)) = return (result, Nothing, typ)
 	where
 		result = AST.ConstantOperand $ C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
 		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
 
-generateExpression (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
-generateExpression (CCast decl expr _) = trace "I don't know how to do CCast: " undefined
+generateExpression _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
+generateExpression _ (CCast decl expr _) = trace "I don't know how to do CCast: " undefined
 
-generateExpression expr = trace ("encountered expr: " ++ (show expr)) undefined
+generateExpression _ expr = trace ("encountered expr: " ++ (show expr)) undefined
 
 
 -- choose between icmp and fcmp
