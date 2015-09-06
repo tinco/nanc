@@ -58,7 +58,7 @@ generateExternFunction declaration = do
 		defs <- gets typeDefinitions
 		let fTypeToTuple (FT (FunctionType rt argts)) = (qualifiedTypeToType defs rt, map (\ (t,n) -> (qualifiedTypeToType defs t, AST.Name n)) argts) 
 		let (retty, argtys) = fTypeToTuple fType
-		external retty name argtys
+		external defs name (declarationType declaration)
 	where
 		fType = qualifiedTypeType $ declarationType declaration
 		name = declarationName declaration
@@ -76,20 +76,22 @@ generateTypedef declaration = do
 generateStaticDecl :: Declaration -> Module ()
 generateStaticDecl decl = do
 		defs <- gets typeDefinitions
-		let def = case declType $ declarationSpecs decl of
-			typ@(QualifiedType (CT (E (CEnum (Just (Ident n _ _)) _ _ a))) _)
+		let (def,name) = case typ of
+			(QualifiedType (CT (E (CEnum (Just (Ident n _ _)) _ _ a))) _)
 				->
-					AST.GlobalDefinition $ AST.globalVariableDefaults {
+					(AST.GlobalDefinition $ AST.globalVariableDefaults {
 						name = AST.Name n,
 						type' = qualifiedTypeToType defs $ typ
-					}
-			typ
+					}, n)
+			_
 				->
-					AST.GlobalDefinition $ AST.globalVariableDefaults {
+					(AST.GlobalDefinition $ AST.globalVariableDefaults {
 						name = AST.Name $ declarationName decl,
 						type' = qualifiedTypeToType defs $ typ
-					}
-		addDefn def
+					}, declarationName decl)
+		addDefn name typ def
+	where
+		typ = declType $ declarationSpecs decl
 
 buildGlobalSymbolTable :: [AST.Definition] -> [(String, Symbol)]
 buildGlobalSymbolTable [] = []
@@ -117,7 +119,9 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		typeDefs <- gets typeDefinitions
 		let defs = AST.moduleDefinitions llvmModuleState
 		let fnargs = extractFnArgs typeDefs declr
-		let tp = qualifiedTypeToType [] $ declType declSpecs
+		let params = map (\d -> (declarationType d, declarationName d)) fnargs
+		let retTyp = declType declSpecs
+		let typ = QualifiedType (FT (FunctionType retTyp params)) defaultTypeQualifiers
 		let argumentSymbols = map (\ (d) -> (declarationName d, (LocalReference (qualifiedTypeToType typeDefs $ declarationType d) (AST.Name (declarationName d)), declarationType d))) fnargs
 		let initialCodeGenState ds = emptyCodegen {
 			symboltables = [argumentSymbols, buildGlobalSymbolTable ds]
@@ -132,7 +136,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 			else
 				return ()
 
-		define tp name (declsToFnArgs typeDefs fnargs) (bls defs)
+		defineFunction typeDefs name typ (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
 		name = extractDeclrName declr

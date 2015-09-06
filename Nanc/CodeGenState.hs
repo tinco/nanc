@@ -22,6 +22,8 @@ import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
 import qualified LLVM.General.AST.Constant as C
 
+import Nanc.IR.Types
+
 type Symbol = (Operand, QualifiedType)
 type SymbolTable = [(String, Symbol)]
 type TypeTable = [(String, QualifiedType)]
@@ -47,7 +49,8 @@ data BlockState = BlockState {
 
 data ModuleState = ModuleState {
 	llvmModuleState :: AST.Module,
-	typeDefinitions :: TypeTable
+	typeDefinitions :: TypeTable,
+	globalDeclarations :: [(String, QualifiedType, Definition)]
 }
 
 newtype Codegen a = Codegen {
@@ -67,7 +70,8 @@ execCodegen initial m = execState (runCodegen m) initial
 emptyModule :: String -> ModuleState
 emptyModule label = ModuleState {
 	llvmModuleState = defaultModule { moduleName = label },
-	typeDefinitions = builtinTypeDefinitions
+	typeDefinitions = builtinTypeDefinitions,
+	globalDeclarations = []
 }
 
 {- More information about builtins here:
@@ -88,27 +92,26 @@ emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
 entryBlockName :: String
 entryBlockName = "entry"
 
-addDefn :: Definition -> Module ()
-addDefn d = do
+addDefn :: String -> QualifiedType -> Definition -> Module ()
+addDefn n qt d = do
+	globalDefs <- gets globalDeclarations
 	llvmModuleState <- gets llvmModuleState
 	let defs = moduleDefinitions llvmModuleState
-	modify $ \s -> s { llvmModuleState = llvmModuleState { moduleDefinitions = defs ++ [d] } }
+	modify $ \s -> s { llvmModuleState = llvmModuleState { moduleDefinitions = defs ++ [d] },
+	                   globalDeclarations = globalDefs ++ [(n, qt, d)] }
 
-define ::  Type -> String -> [(Type, Name)] -> [BasicBlock] -> Module ()
-define retty label argtys body = addDefn $ GlobalDefinition $ functionDefaults {
-		name        = Name label,
-		parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False),
-		returnType  = retty,
-		basicBlocks = body
-	}
+defineFunction :: TypeTable -> String -> QualifiedType -> [BasicBlock] -> Module ()
+defineFunction ts name qt@(QualifiedType (FT (Nanc.AST.FunctionType retty params)) _) body = addDefn name qt definition
+	where
+		definition = GlobalDefinition $ functionDefaults {
+				name        = Name name,
+				parameters  = ([Parameter (qualifiedTypeToType ts ty) (Name nm) [] | (ty, nm) <- params], False),
+				returnType  = qualifiedTypeToType ts retty,
+				basicBlocks = body
+			}
 
-external ::  Type -> String -> [(Type, Name)] -> Module ()
-external retty label argtys = addDefn $	GlobalDefinition $ functionDefaults {
-		name        = Name label,
-		parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False),
-		returnType  = retty,
-		basicBlocks = []
-	}
+external ::  TypeTable -> String -> QualifiedType -> Module ()
+external ts name qt = defineFunction ts name qt []
 
 entry :: Codegen Name
 entry = gets currentBlock
