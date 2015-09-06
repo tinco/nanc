@@ -118,7 +118,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		let defs = AST.moduleDefinitions llvmModuleState
 		let fnargs = extractFnArgs typeDefs declr
 		let tp = qualifiedTypeToType [] $ declType declSpecs
-		let argumentSymbols = trace "inserted undefined type here: " $ map (\ (t,n@(AST.Name ns)) -> (ns, (LocalReference t n, undefined))) fnargs
+		let argumentSymbols = map (\ (d) -> (declarationName d, (LocalReference (qualifiedTypeToType typeDefs $ declarationType d) (AST.Name (declarationName d)), declarationType d))) fnargs
 		let initialCodeGenState ds = emptyCodegen {
 			symboltables = [argumentSymbols, buildGlobalSymbolTable ds]
 		}
@@ -132,7 +132,7 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 			else
 				return ()
 
-		define tp name fnargs (bls defs)
+		define tp name (declsToFnArgs typeDefs fnargs) (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs
 		name = extractDeclrName declr
@@ -146,9 +146,10 @@ maybeReturnZero = do
 extractDeclrName :: CDeclr -> String
 extractDeclrName (CDeclr ident _ _ _ _) = maybe "anonymous" (\ (Ident n _ _) -> n) ident
 
-extractFnArgs :: TypeDefinitions -> CDeclr -> [(AST.Type, AST.Name)]
+extractFnArgs :: TypeDefinitions -> CDeclr -> [Declaration]
 -- Only parse new style params
-extractFnArgs typeDefs (CDeclr _ [CFunDeclr (Right (params, mysteriousBool)) _ _] _ _ _) = args
-	where
-		declarations = map buildDeclaration params
-		args = map (\ d -> (qualifiedTypeToType typeDefs $ declarationType d, AST.Name $ declarationName d) ) declarations
+extractFnArgs typeDefs (CDeclr _ [CFunDeclr (Right (params, mysteriousBool)) _ _] _ _ _) = map buildDeclaration params
+
+declsToFnArgs :: TypeTable -> [Declaration] -> [(AST.Type, AST.Name)]
+-- Only parse new style params
+declsToFnArgs ts decls = map (\ d -> (qualifiedTypeToType ts $ declarationType d, AST.Name $ declarationName d) ) decls
