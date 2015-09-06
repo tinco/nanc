@@ -17,9 +17,6 @@ import Nanc.IR.Types
 import Nanc.IR.Expression
 import Nanc.IR.Instructions
 
-fst3 :: (a, b, c) -> a
-fst3 (x, _, _) = x
-
 generateStatement :: CStat -> Codegen ()
 generateStatement (CExpr expr _) = void $ generateExpression (fromJust expr)
 generateStatement (CReturn Nothing _)= void $ ret Nothing

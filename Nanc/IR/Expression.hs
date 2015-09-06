@@ -24,6 +24,9 @@ import Nanc.IR.Types
 import Nanc.IR.Instructions
 import qualified LLVM.General.AST.Constant as C
 
+fst3 :: (a, b, c) -> a
+fst3 (x, _, _) = x
+
 generateExpression :: CExpr -> Codegen (
 		AST.Operand,      -- return value
 		Maybe AST.Operand, -- address if value has an address
@@ -31,10 +34,10 @@ generateExpression :: CExpr -> Codegen (
 	)
 -- var()
 generateExpression (CCall fn' args' _) = do
-	_args <- mapM generateExpression args'
-	_fn <- generateExpression fn'
-	-- call fn args
-	return $ trace "Generating expression: " undefined
+	args <- mapM generateExpression args'
+	(fn,_,t) <- generateExpression fn'
+	result <- call fn (map fst3 args)
+	return (result, Nothing, returnType t)
 
 -- var
 generateExpression (CVar (Ident name _ _) _) = do

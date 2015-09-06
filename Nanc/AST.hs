@@ -40,6 +40,9 @@ data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers deriving (Show)
 
 data Signedness = Signed | Unsigned
 
+returnType :: QualifiedType -> QualifiedType
+returnType (QualifiedType (FT (FunctionType t _)) _) = t
+
 isNoTypeSpec :: QualifiedType -> Bool
 isNoTypeSpec (QualifiedType NoTypeSpec _) = True
 isNoTypeSpec _ = False

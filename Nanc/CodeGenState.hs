@@ -6,7 +6,7 @@ module Nanc.CodeGenState where
 import Debug.Trace
 import GHC.Stack
 
-import Nanc.AST
+import Nanc.AST hiding (returnType)
 
 import Data.Word
 import Data.List
