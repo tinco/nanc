@@ -27,6 +27,7 @@ import Nanc.IR.Types
 type Symbol = (Operand, QualifiedType)
 type SymbolTable = [(String, Symbol)]
 type TypeTable = [(String, QualifiedType)]
+type GlobalDeclaration = (String, QualifiedType, Definition)
 
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
@@ -50,7 +51,7 @@ data BlockState = BlockState {
 data ModuleState = ModuleState {
 	llvmModuleState :: AST.Module,
 	typeDefinitions :: TypeTable,
-	globalDeclarations :: [(String, QualifiedType, Definition)]
+	globalDeclarations :: [GlobalDeclaration]
 }
 
 newtype Codegen a = Codegen {

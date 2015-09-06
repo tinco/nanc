@@ -93,20 +93,22 @@ generateStaticDecl decl = do
 	where
 		typ = declType $ declarationSpecs decl
 
-buildGlobalSymbolTable :: [AST.Definition] -> [(String, Symbol)]
+-- buildGlobalSymbolTable :: [GlobalDeclaration] -> SymbolTable
+buildGlobalSymbolTable :: [(String, QualifiedType, AST.Definition)] -> [(String, (Operand, QualifiedType))]
 buildGlobalSymbolTable [] = []
-buildGlobalSymbolTable ((AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
+buildGlobalSymbolTable ((name,qt,AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
 	where
 		b :: Global -> (String, Symbol)
-		b (GlobalVariable n@(AST.Name name) _ _ _ _ _ _ t _ _ _) = trace "GlobalVariables are going wrong:" $ (name, (ConstantOperand $ C.GlobalReference t n, undefined))
+		b (GlobalVariable n _ _ _ _ _ _ t _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
 		b (GlobalAlias (AST.Name name) _ _ _ _) = trace ("unsupported global alias: " ++ name) (name, undefined)
-		b (Function _ _ _ _ t n@(AST.Name name) _ _ _ _ _ _) = trace "Function variables are going wrong: " $ (name, (ConstantOperand $ C.GlobalReference t n, undefined))
+		b (Function _ _ _ _ t n _ _ _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
 {- GlobalVariable Name Linkage Visibility Bool AddrSpace Bool Bool Type (Maybe Constant) (Maybe String) Word32	
    GlobalAlias Name Linkage Visibility Type Constant	
    Function Linkage Visibility CallingConvention [ParameterAttribute] Type Name ([Parameter], Bool) [FunctionAttribute] (Maybe String) Word32 (Maybe String) [BasicBlock] -}
 
 -- for now skip over typedefs in symboltable
-buildGlobalSymbolTable ((AST.TypeDefinition (AST.Name _n) _maybeType):rest) = buildGlobalSymbolTable rest
+buildGlobalSymbolTable ((_name, _qt, AST.TypeDefinition (AST.Name _n) _maybeType):rest) = buildGlobalSymbolTable rest
+
 {- GlobalDefinition Global	 
    TypeDefinition Name (Maybe Type)	 
    MetadataNodeDefinition MetadataNodeID [Maybe Operand]	 
@@ -115,9 +117,9 @@ buildGlobalSymbolTable ((AST.TypeDefinition (AST.Name _n) _maybeType):rest) = bu
 
 generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = do
-		llvmModuleState <- gets llvmModuleState
+		globalDecls <- gets globalDeclarations
 		typeDefs <- gets typeDefinitions
-		let defs = AST.moduleDefinitions llvmModuleState
+		let defs = globalDecls
 		let fnargs = extractFnArgs typeDefs declr
 		let params = map (\d -> (declarationType d, declarationName d)) fnargs
 		let retTyp = declType declSpecs
