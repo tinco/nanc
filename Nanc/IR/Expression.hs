@@ -43,7 +43,7 @@ generateExpression ts (CCall fn' args' _) = do
 generateExpression ts (CVar (Ident name _ _) _) = do
 	(address, typ) <- getvar name
 	let t = qualifiedTypeToType ts typ
-	value <- load (AST.pointerReferent t) address
+	value <- load (trace ("\n\nGoing to get reference to: " ++ (show typ)) $ AST.pointerReferent t) address
 	return (value, Just address, typ)
 
 -- var = bar
@@ -90,8 +90,8 @@ generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	let resultType = declarationType $ members !! i
 	let t = qualifiedTypeToType ts resultType
 	let idx = intConst (fromIntegral i)
-	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
-	value <- load (AST.pointerReferent t) resultAddr
+	resultAddr <- instr (trace ("\n\nGoing to get reference to: " ++ (show ts)) $ AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
+	value <- load (trace ("\n\nGoing to get reference to: " ++ (show ts)) $ AST.pointerReferent t) resultAddr
 	return (value, Just resultAddr, resultType)
 
 -- (CConst (CCharConst '\n' ()))
