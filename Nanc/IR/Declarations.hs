@@ -119,16 +119,18 @@ generateFunDef :: CFunDef -> Module ()
 generateFunDef (CFunDef specs declr _decls stat _) = do
 		globalDecls <- gets globalDeclarations
 		typeDefs <- gets typeDefinitions
+		litsCount <- gets globalLiteralsCount
 		let defs = globalDecls
 		let fnargs = extractFnArgs typeDefs declr
 		let params = map (\d -> (declarationType d, declarationName d)) fnargs
 		let retTyp = declType declSpecs
 		let typ = QualifiedType (FT (FunctionType retTyp params)) defaultTypeQualifiers
 		let argumentSymbols = map (\ (d) -> (declarationName d, (LocalReference (qualifiedTypeToType typeDefs $ declarationType d) (AST.Name (declarationName d)), declarationType d))) fnargs
-		let initialCodeGenState ds = emptyCodegen {
+
+		let initialCodeGenState ds = (emptyCodegen litsCount) {
 			symboltables = [argumentSymbols, buildGlobalSymbolTable ds]
 		}
-		let bls ds = createBlocks $ execCodegen (initialCodeGenState ds) $ do
+		let cg = execCodegen (initialCodeGenState defs) $ do
 			entryB <- addBlock entryBlockName
 			setBlock entryB
 			generateStatement typeDefs stat
@@ -138,6 +140,12 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 			else
 				return ()
 
+		let litC = literalsCount cg
+		let lits = literals cg
+
+		defineLiterals litC lits
+
+		let bls ds = createBlocks cg
 		defineFunction typeDefs name typ (bls defs)
 	where
 		declSpecs = buildDeclarationSpecs specs

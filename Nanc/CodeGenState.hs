@@ -21,6 +21,7 @@ import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
 import qualified LLVM.General.AST.Constant as C
+import qualified LLVM.General.AST.Linkage as L
 
 import Nanc.IR.Types
 
@@ -35,7 +36,9 @@ data CodegenState = CodegenState {
 	symboltables :: [SymbolTable],           -- Function scope symbol table
 	blockCount   :: Int,                     -- Count of basic blocks
 	count        :: Word,                    -- Count of unnamed instructions
-	names        :: Names                    -- Name Supply
+	names        :: Names,                   -- Name Supply
+	literalsCount :: Int,                   -- Count of literals
+	literals     :: [(String, QualifiedType, C.Constant)]  -- Literals that need to be declared globally
 } deriving Show
 
 {-
@@ -51,7 +54,8 @@ data BlockState = BlockState {
 data ModuleState = ModuleState {
 	llvmModuleState :: AST.Module,
 	typeDefinitions :: TypeTable,
-	globalDeclarations :: [GlobalDeclaration]
+	globalDeclarations :: [GlobalDeclaration],
+	globalLiteralsCount :: Int
 }
 
 newtype Codegen a = Codegen {
@@ -72,7 +76,8 @@ emptyModule :: String -> ModuleState
 emptyModule label = ModuleState {
 	llvmModuleState = defaultModule { moduleName = label },
 	typeDefinitions = builtinTypeDefinitions,
-	globalDeclarations = []
+	globalDeclarations = [],
+	globalLiteralsCount = 0
 }
 
 {- More information about builtins here:
@@ -87,8 +92,18 @@ builtinTypeDefinitions = [
 		("__builtin_va_list", QualifiedType (Ptr (QualifiedType (ST Char) defaultTypeQualifiers)) defaultTypeQualifiers)
 	]
 
-emptyCodegen :: CodegenState
-emptyCodegen = CodegenState (Name entryBlockName) Map.empty [] 1 0 Map.empty
+emptyCodegen :: Int -> CodegenState
+emptyCodegen litsCount = CodegenState {
+	currentBlock = (Name entryBlockName),
+	blocks = Map.empty,
+	symboltables = [],
+	blockCount = 1,
+	count = 0,
+	names = Map.empty,
+	literalsCount = litsCount,
+	literals = []
+}
+
 
 entryBlockName :: String
 entryBlockName = "entry"
@@ -113,6 +128,22 @@ defineFunction ts name qt@(QualifiedType (FT (Nanc.AST.FunctionType retty params
 
 external ::  TypeTable -> String -> QualifiedType -> Module ()
 external ts name qt = defineFunction ts name qt []
+
+defineLiterals :: Int -> [(String, QualifiedType, C.Constant)] -> Module ()
+defineLiterals idx lits = do
+	defs <- gets typeDefinitions
+	let makeLit name qt c = AST.GlobalDefinition $ AST.globalVariableDefaults {
+			name = Name name,
+			LLVM.General.AST.Global.type' = qualifiedTypeToType defs qt,
+			linkage = L.Internal,
+			hasUnnamedAddr = True,
+			isConstant = True,
+			initializer = Just c
+	}
+	mapM (\(name, qt, c) -> addDefn name qt (makeLit name qt c)) lits
+	modify $ \s -> s { globalLiteralsCount = idx }
+	where
+
 
 entry :: Codegen Name
 entry = gets currentBlock
@@ -184,11 +215,17 @@ fresh = do
 	modify $ \s -> s { count = 1 + i }
 	return $ i + 1
 
+freshLiteral :: Codegen Int
+freshLiteral = do
+	i <- gets literalsCount
+	modify $ \s -> s { literalsCount = 1 + i }
+	return $ i + 1
+
 local ::  Name -> Type -> Operand
 local n t = LocalReference t n
 
-externf :: Name -> Type -> Operand
-externf n t = ConstantOperand . C.GlobalReference t $ n
+global :: Name -> Type -> Operand
+global n t = ConstantOperand . C.GlobalReference t $ n
 
 assign :: String -> Symbol -> Codegen ()
 assign var x = do
@@ -200,6 +237,14 @@ symbolLookup name (t:rest) = case lookup name t of
 	Just operand -> Just operand
 	Nothing -> symbolLookup name rest
 symbolLookup _ [] = Nothing
+
+literal :: (C.Constant, QualifiedType) -> Codegen (String)
+literal (c,t) = do
+	idx <- freshLiteral
+	let name = "___lit_" ++ (show idx)
+	lits <- gets literals
+	modify $ \s -> s { literals = lits ++ [(name, t, c)] }
+	return name
 
 getvar :: String -> Codegen Symbol
 getvar var = do

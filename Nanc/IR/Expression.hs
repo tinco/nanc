@@ -104,9 +104,13 @@ generateExpression _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, N
 		result = intConst64 $ fromIntegral i
 		typ = QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True })
 
-generateExpression _ (CConst (CStrConst (CString str _) _)) = return (result, Nothing, typ)
+generateExpression ts (CConst (CStrConst (CString str _) _)) = do
+		name <- literal (cnst, typ)
+		let t = qualifiedTypeToType ts typ
+		let result = global (AST.Name name) t
+		return (result, Nothing, typ)
 	where
-		result = AST.ConstantOperand $ C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
+		cnst = C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
 		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
 
 generateExpression _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
