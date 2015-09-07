@@ -12,8 +12,8 @@ import Language.C.Data.Ident
 import Language.C.Pretty
 import Language.C.Syntax.AST
 
+import LLVM.General.AST.AddrSpace
 import qualified LLVM.General.AST as AST
-
 import qualified LLVM.General.AST.IntegerPredicate as I
 import qualified LLVM.General.AST.FloatingPointPredicate as F
 
@@ -93,8 +93,8 @@ generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	let resultType = declarationType $ members !! i
 	let t = qualifiedTypeToType ts resultType
 	let idx = intConst (fromIntegral i)
-	resultAddr <- instr (trace ("\n\nGoing to get reference to: " ++ (show ts)) $ AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
-	value <- load (trace ("\n\nGoing to get reference to: " ++ (show ts)) $ AST.pointerReferent t) resultAddr
+	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
+	value <- load (AST.pointerReferent t) resultAddr
 	return (value, Just resultAddr, resultType)
 
 -- (CConst (CCharConst '\n' ()))
@@ -107,7 +107,8 @@ generateExpression _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, N
 generateExpression ts (CConst (CStrConst (CString str _) _)) = do
 		name <- literal (cnst, typ)
 		let t = qualifiedTypeToType ts typ
-		let result = global (AST.Name name) t
+		let addr = global (AST.Name name) t
+		result <- instr (AST.PointerType (AST.IntegerType 8) (AddrSpace 0)) (AST.GetElementPtr True addr [intConst64 0, intConst64 0] [])
 		return (result, Nothing, typ)
 	where
 		cnst = C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
