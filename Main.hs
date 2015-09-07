@@ -24,10 +24,9 @@ main = do
 	let ast = generate "test" parsed
 	putStrLn $ "Generated external declarations: " ++ (show ast)
 
-	withContext $ \x -> liftError $ withModuleFromAST x ast $ \m -> do
-		ir <- moduleLLVMAssembly m
-		putStrLn ir
-		return ()
+	ir <- withContext $ \x -> liftError $ withModuleFromAST x ast $ \m -> moduleLLVMAssembly m
+
+	writeFile "test.ir" ir
 
 parseMyFile :: FilePath -> IO CTranslUnit
 parseMyFile input_file = do
