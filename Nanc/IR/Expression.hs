@@ -42,9 +42,12 @@ generateExpression ts (CCall fn' args' _) = do
 -- var
 generateExpression ts (CVar (Ident name _ _) _) = do
 	(address, typ) <- getvar name
-	let t = qualifiedTypeToType ts typ
-	value <- load (trace ("\n\nGoing to get reference to: " ++ (show typ)) $ AST.pointerReferent t) address
-	return (value, Just address, typ)
+	case typ of
+		QualifiedType (FT _) _ -> return (address, Nothing, typ)
+		_ -> do
+			let t = qualifiedTypeToType ts typ
+			value <- load (AST.pointerReferent t) address
+			return (value, Just address, typ)
 
 -- var = bar
 generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
