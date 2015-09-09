@@ -34,7 +34,7 @@ data ComplexType = Struct !(Maybe String) ![Declaration] ![CAttr] | Union ![Decl
 
 data FunctionType = FunctionType !QualifiedType ![(QualifiedType, String)] deriving (Show)
 
-data TypeSpec = Ptr !QualifiedType | CT !ComplexType | ST !SimpleType | FT !FunctionType | Arr !Word64 !QualifiedType | NoTypeSpec | TypeType deriving (Show)
+data TypeSpec = Ptr !QualifiedType | CT !ComplexType | ST !SimpleType | FT !FunctionType | Arr !Word64 !QualifiedType | TypeAlias !String | NoTypeSpec | TypeType deriving (Show)
 
 data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers deriving (Show)
 

@@ -21,37 +21,11 @@ import Nanc.IR.Types
 import Nanc.IR.Statement
 import Nanc.IR.Expression
 
--- TODO: why compile declarations we might never reference? We should
--- make this lazy. So a declaration only gets compiled when it's referenced
--- from main or is externally visible.
-
-{-
-External declarations can either be a toplevel declaration, a function definition or external assember
--}
-generateExtDecl :: CExtDecl -> Module ()
-generateExtDecl (CDeclExt decl) = generateToplevelDecl decl
-generateExtDecl (CFDefExt decl) = generateFunDef decl
-generateExtDecl (CAsmExt _decl _) = trace "ASM:" $ undefined
-
 {-
 C99 requires that there is at least one specifier, though this is merely a syntactic restriction
 at most one storage class specifier is allowed per declaration
 the elements of the non-empty init-declarator-list are of the form (Just declr, init?, Nothing). The declarator declr has to be present and non-abstract and the initialization expression is optional.
 -}
-generateToplevelDecl :: CDecl -> Module ()
-generateToplevelDecl decl
-	| isExtern && isFunction = trace "ExternFunction" $ generateExternFunction declaration
-	| isExtern = trace "ExternVariable" $ generateExternVariable declaration
-	| isTypedef = trace "TypeDef" $ generateTypedef declaration
-	| isStatic = trace "StaticDecl" $ generateStaticDecl declaration
-	| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
-	where
-		declaration = globalDeclarationDefaults $ buildDeclaration decl
-		storage = declStorage $ declarationSpecs declaration
-		isExtern = storage == Extern
-		isTypedef = storage == Typedef
-		isStatic = storage == Static
-		isFunction = isFunctionType $ declarationType declaration
 
 generateExternFunction :: Declaration -> Module ()
 generateExternFunction declaration = do
@@ -66,15 +40,36 @@ generateExternFunction declaration = do
 generateExternVariable :: Declaration -> Module ()
 generateExternVariable declaration = trace ("Non function extern: " ++ (show $ declarationName declaration)) $ return ()
 
+{-
+ Declaration {declarationName = "__ino_t",
+ 	 declarationSpecs = DeclarationSpecs {
+ 	 	declStorage = Typedef,
+ 	 	declType = QualifiedType (ST UnsignedLongInt) (TypeQualifiers {typeIsVolatile = False, typeIsConst = False, typeIsRestrict = False, typeIsInline = False}),
+        declStorageNodes = [(NodeInfo ("/usr/include/x86_64-linux-gnu/bits/types.h": line 127) (("/usr/include/x86_64-linux-gnu/bits/types.h": line 127),7) Name {nameId = 117})],
+        declTypeNodes = [(NodeInfo ("/usr/include/x86_64-linux-gnu/bits/types.h": line 127) (("/usr/include/x86_64-linux-gnu/bits/types.h": line 127),8) Name {nameId = 118})], declQualifierNodes = []},
+        declarationType = QualifiedType (ST UnsignedLongInt) (TypeQualifiers {typeIsVolatile = False, typeIsConst = False, typeIsRestrict = False, typeIsInline = False})}
+-}
+
+{-
+Typedef: CDecl 
+		[CStorageSpec (CTypedef),
+			CTypeSpec (CSUType 
+				(CStruct CStructTag 
+					(Just (Ident "_IO_FILE" ) 
+		[(Just (CDeclr (Just (Ident "__FILE" 154260139
+
+-}
+
 generateTypedef :: Declaration -> Module ()
 generateTypedef declaration = do
 		defs <- gets typeDefinitions
-		modify $ \s -> s { typeDefinitions = defs ++ [(name, declarationType declaration)] }
+		modify $ \s -> s { typeDefinitions = defs ++ [(name, typ)] }
 	where
-		name = declarationName declaration	
+		name = declarationName declaration
+		typ = trace ("Typedef typ = " ++ (show $ declarationType declaration) ++ " of name " ++ (show name) ++ "\n") $ declarationType declaration
 
-generateStaticDecl :: Declaration -> Module ()
-generateStaticDecl decl = do
+generateStaticVariable :: Declaration -> Module ()
+generateStaticVariable decl = do
 		defs <- gets typeDefinitions
 		let (def,name) = case typ of
 			(QualifiedType (CT (E (CEnum (Just (Ident n _ _)) _ _ a))) _)
@@ -107,7 +102,7 @@ buildGlobalSymbolTable ((name,qt,AST.GlobalDefinition gd):rest) = (b gd): buildG
    Function Linkage Visibility CallingConvention [ParameterAttribute] Type Name ([Parameter], Bool) [FunctionAttribute] (Maybe String) Word32 (Maybe String) [BasicBlock] -}
 
 -- for now skip over typedefs in symboltable
-buildGlobalSymbolTable ((_name, _qt, AST.TypeDefinition (AST.Name _n) _maybeType):rest) = buildGlobalSymbolTable rest
+buildGlobalSymbolTable ((_name, _qt, AST.TypeDefinition (AST.Name _n) _maybeType):rest) = trace ("skipping: " ++ (show _n)) $ buildGlobalSymbolTable rest
 
 {- GlobalDefinition Global	 
    TypeDefinition Name (Maybe Type)	 

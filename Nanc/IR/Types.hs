@@ -20,11 +20,13 @@ booleanType = LLVM.IntegerType 1
 qualifiedTypeToType :: TypeDefinitions -> QualifiedType -> Type
 qualifiedTypeToType _ (QualifiedType (ST t) qs) = simpleTypeToType t qs
 qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
+qualifiedTypeToType m (QualifiedType (Ptr (QualifiedType (ST Void) _)) _) = PointerType (IntegerType 8) (AddrSpace 0)
 qualifiedTypeToType m (QualifiedType (Ptr qt@(QualifiedType (FT _) _)) qs) = trace "Dodgy function pointer" $ PointerType (IntegerType 64) (AddrSpace 0)
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
 qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
 qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
 qualifiedTypeToType m (QualifiedType (FT ft) qs) = functionTypeToType m ft qs
+qualifiedTypeToType m (QualifiedType (TypeAlias n) qs) = NamedTypeReference (Name n)
 qualifiedTypeToType _ qt = trace ("Unimplemented type: " ++ show qt) undefined
 
 simpleTypeToType :: SimpleType -> TypeQualifiers -> Type
