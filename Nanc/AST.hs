@@ -40,6 +40,10 @@ data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers deriving (Show)
 
 data Signedness = Signed | Unsigned
 
+isTypeAlias :: QualifiedType -> Bool
+isTypeAlias (QualifiedType (TypeAlias _) _) = True
+isTypeAlias _ = False
+
 returnType :: QualifiedType -> QualifiedType
 returnType (QualifiedType (FT (FunctionType t _)) _) = t
 

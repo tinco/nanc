@@ -2,6 +2,7 @@ module Nanc.IR.Declarations where
 
 import Debug.Trace
 import Data.Maybe
+import Data.List
 
 import Control.Monad.State
 
@@ -67,6 +68,19 @@ generateTypedef declaration = do
 	where
 		name = declarationName declaration
 		typ = trace ("Typedef typ = " ++ (show $ declarationType declaration) ++ " of name " ++ (show name) ++ "\n") $ declarationType declaration
+
+resolveTypeDefinitions :: Module ()
+resolveTypeDefinitions = do
+	typeDefs <- gets typeDefinitions
+	let (aliases, direct) = partition (isTypeAlias.snd) typeDefs
+	let (result, _) = resolveTypeDefinitions' direct aliases
+	modify $ \s -> s { typeDefinitions = result }
+	where
+		resolveTypeDefinitions' :: TypeTable -> TypeTable -> (TypeTable, TypeTable)
+		resolveTypeDefinitions' direct [] = (direct, [])
+		resolveTypeDefinitions' direct ((e@(n, QualifiedType (TypeAlias s) _)):as) = case lookup s direct of
+			Just t -> resolveTypeDefinitions' ((n,t):direct) as
+			Nothing -> trace ("Don't do chained type aliases yet: " ++ (show e)) undefined
 
 generateStaticVariable :: Declaration -> Module ()
 generateStaticVariable decl = do

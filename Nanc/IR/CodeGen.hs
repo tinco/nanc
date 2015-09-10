@@ -35,6 +35,7 @@ emptyTranslUnit = TranslUnit [] [] [] [] [] []
 generate :: String -> CTranslUnit -> AST.Module
 generate name (CTranslUnit decls _) = llvmModuleState $ runModule (emptyModule name) $ do
 		mapM generateTypedef (typeDefs tu)
+		resolveTypeDefinitions
 		mapM generateExternVariable (extVariables tu)
 		mapM generateExternFunction (extFunDefs tu)
 		mapM generateStaticVariable (staticVariables tu)
