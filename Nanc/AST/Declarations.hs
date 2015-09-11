@@ -9,12 +9,16 @@ import Language.C.Data.Ident
 
 import Nanc.AST
 
+metaToRandom :: NodeInfo -> Int
+metaToRandom (NodeInfo _ _ (Name i)) = i
+metaToRandom m = trace ("Unknown meta: " ++ (show m)) undefined
+
 {-
  - Helper functions for transforming the Language.C Declarations to Nanc.AST Declaratoins.
  -}
 
 buildDeclaration :: CDecl -> Declaration
-buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmName attrs _),_,_)] _) =
+buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmName attrs _),_,_)] m) =
 	-- trace ("DeclName: " ++ name) $
 	result
 	where
@@ -24,12 +28,12 @@ buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmNa
 			declarationType = buildDerivedType (declType ds) derivedDeclarators 
 		}
 		ds = buildDeclarationSpecs specs
-		name = fromMaybe "AnonymousDeclaration" (identToString <$> maybeName) 
+		name = fromMaybe ("Anon" ++ (show $ metaToRandom m)) (identToString <$> maybeName) 
 
 {- CDecl [CTypeSpec (CTypeDef (Ident "size_t" 213839698))] [] -}
 -- This is a declaration with just a typespecifier and no extra information
-buildDeclaration decl@(CDecl specs [] _) =
-	-- trace ("DeclName: " ++ name) $
+buildDeclaration decl@(CDecl specs [] m) =
+	trace ("DeclName: " ++ name) $
 	result
 	where
 		result = Declaration {
@@ -38,8 +42,8 @@ buildDeclaration decl@(CDecl specs [] _) =
 			declarationType = declType ds
 		}
 		ds = buildDeclarationSpecs specs
-		name = head $ catMaybes [structName (declType ds), Just "AnonymousDeclaration"]
-		structName (QualifiedType (CT (Struct (Just name) _ _)) _) = Just name
+		name = head $ catMaybes [structName (declType ds), Just ("Anon" ++ (show $ metaToRandom m))]
+		structName (QualifiedType (CT (Struct (Just name) _ _)) _) = Just ("struct " ++ name)
 		structName _ = Nothing
 
 buildDeclaration decl = trace ("Weird declaration: " ++ (show $ decl)) undefined

@@ -80,7 +80,7 @@ resolveTypeDefinitions = do
 		resolveTypeDefinitions' direct [] = (direct, [])
 		resolveTypeDefinitions' direct ((e@(n, QualifiedType (TypeAlias s) _)):as) = case lookup s direct of
 			Just t -> resolveTypeDefinitions' ((n,t):direct) as
-			Nothing -> trace ("Don't do chained type aliases yet: " ++ (show e)) undefined
+			Nothing -> trace ("Don't do chained type aliases yet: " ++ (show e)) $ undefined --resolveTypeDefinitions' direct (as ++ [e])
 
 generateStaticVariable :: Declaration -> Module ()
 generateStaticVariable decl = do
@@ -167,7 +167,7 @@ maybeReturnZero = do
 		_ -> return ()
 
 extractDeclrName :: CDeclr -> String
-extractDeclrName (CDeclr ident _ _ _ _) = maybe "anonymous" (\ (Ident n _ _) -> n) ident
+extractDeclrName (CDeclr ident _ _ _ m) = maybe ("Anon" ++ (show $ metaToRandom m)) (\ (Ident n _ _) -> n) ident
 
 extractFnArgs :: TypeDefinitions -> CDeclr -> [Declaration]
 -- Only parse new style params
