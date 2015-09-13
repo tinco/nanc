@@ -88,7 +88,7 @@ generateExpression ts (CBinary op leftExpr rightExpr _) = do
 -- CVar (Ident "_p" 14431 n) n
 generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	(_, Just addr, typ) <- generateExpression ts subjectExpr
-	let (QualifiedType  (CT (Struct _ members _)) _) = typ
+	let members = extractMembers typ
 	let i = head $ elemIndices memName $ map (declarationName) members
 	let resultType = declarationType $ members !! i
 	let t = qualifiedTypeToType ts resultType
@@ -96,6 +96,14 @@ generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
 	value <- load (AST.pointerReferent t) resultAddr
 	return (value, Just resultAddr, resultType)
+	where
+		extractMembers (QualifiedType (CT (Struct _ members _)) _) = members
+		extractMembers (QualifiedType (CT (TD n)) _)  = case lookup n ts of
+			Just t -> extractMembers t
+			Nothing -> trace ("Could not find struct type: " ++ (show n)) undefined
+		-- this doesn't really make sense..
+		extractMembers (QualifiedType (Ptr s) _) = extractMembers s
+		extractMembers s = trace ("Unexptected struct type: " ++ (show s)) undefined
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
