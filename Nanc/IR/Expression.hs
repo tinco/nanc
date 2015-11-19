@@ -88,22 +88,14 @@ generateExpression ts (CBinary op leftExpr rightExpr _) = do
 -- CVar (Ident "_p" 14431 n) n
 generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	(_, Just addr, typ) <- generateExpression ts subjectExpr
-	let members = extractMembers typ
-	let i = head $ elemIndices memName $ map (declarationName) members
-	let resultType = declarationType $ members !! i
+	let (i, resultType) = lookupMember ts typ memName
+
 	let t = qualifiedTypeToType ts resultType
-	let idx = intConst (fromIntegral i)
+	let idx = intConst $ fromIntegral i
+
 	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
 	value <- load (AST.pointerReferent t) resultAddr
 	return (value, Just resultAddr, resultType)
-	where
-		extractMembers (QualifiedType (CT (Struct _ members _)) _) = members
-		extractMembers (QualifiedType (CT (TD n)) _)  = case lookup n ts of
-			Just t -> extractMembers t
-			Nothing -> trace ("Could not find struct type: " ++ (show n)) undefined
-		-- this doesn't really make sense..
-		extractMembers (QualifiedType (Ptr s) _) = extractMembers s
-		extractMembers s = trace ("Unexptected struct type: " ++ (show s)) undefined
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
@@ -127,6 +119,22 @@ generateExpression _ (CCast decl expr _) = trace "I don't know how to do CCast: 
 
 generateExpression _ expr = trace ("encountered expr: " ++ (show expr)) undefined
 
+lookupMember :: TypeTable -> QualifiedType -> String -> (Int, QualifiedType)
+lookupMember ts typ memName = (i, resultType)
+	where
+		members = extractMembers ts typ
+		i = head $ elemIndices memName $ map (declarationName) members
+		resultType = declarationType $ members !! i
+
+-- Extracts the members from a Struct, TD or Ptr to a Struct
+extractMembers :: TypeTable -> QualifiedType -> [Declaration]
+extractMembers ts (QualifiedType (CT (Struct _ members _)) _) = members
+extractMembers ts (QualifiedType (CT (TD n)) _)  = case lookup n ts of
+	Just t -> extractMembers ts t
+	Nothing -> trace ("Could not find struct type: " ++ (show n)) undefined
+-- this doesn't really make sense..
+extractMembers ts (QualifiedType (Ptr s) _) = extractMembers ts s
+extractMembers ts s = trace ("Unexptected struct type: " ++ (show s)) undefined
 
 -- choose between icmp and fcmp
 binaryOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen (AST.Operand, QualifiedType)

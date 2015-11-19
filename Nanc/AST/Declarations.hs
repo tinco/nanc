@@ -33,7 +33,7 @@ buildDeclaration (CDecl specs [(Just (CDeclr maybeName derivedDeclarators _asmNa
 {- CDecl [CTypeSpec (CTypeDef (Ident "size_t" 213839698))] [] -}
 -- This is a declaration with just a typespecifier and no extra information
 buildDeclaration decl@(CDecl specs [] m) =
-	trace ("DeclName: " ++ name) $
+--	trace ("DeclName: " ++ name ++ " type: " ++ (show $ ds)) $
 	result
 	where
 		result = Declaration {
@@ -174,7 +174,7 @@ buildDeclarationSpecs specs = updateTypeQual (build emptyDeclarationSpec specs) 
 				parse (CUnsigType n) = parse (CIntType n)
 
 				parseStruct (CStruct CStructTag (maybeIdent) (Just decls) attrs _) = CT (Struct (parseMaybeIdent maybeIdent) (map buildDeclaration decls) attrs)
-				parseStruct s@(CStruct CStructTag (Just (Ident n _ _)) Nothing attrs _) = TypeAlias n
+				parseStruct s@(CStruct CStructTag (Just (Ident n _ _)) Nothing attrs _) = TypeAlias ("struct " ++ n)
 				parseStruct s@(CStruct CUnionTag Nothing (Just decls) attrs _) = CT (Union (map buildDeclaration decls) attrs)
 
 				parseMaybeIdent (Just (Ident s _ _)) = Just s

@@ -80,7 +80,7 @@ resolveTypeDefinitions = do
 		resolveTypeDefinitions' direct [] = (direct, [])
 		resolveTypeDefinitions' direct ((e@(n, QualifiedType (TypeAlias s) _)):as) = case lookup s direct of
 			Just t -> resolveTypeDefinitions' ((n,t):direct) as
-			Nothing -> trace ("Don't do chained type aliases yet: " ++ (show e)) $ undefined --resolveTypeDefinitions' direct (as ++ [e])
+			Nothing -> trace ("Can't find type for definition: " ++ s ++ " " ++ (show e)) $ undefined
 
 generateStaticVariable :: Declaration -> Module ()
 generateStaticVariable decl = do

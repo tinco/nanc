@@ -2,6 +2,7 @@ module Nanc.IR.CodeGen where
 
 import Debug.Trace
 import Data.Maybe
+import Data.List
 
 import Language.C
 import Language.C.Data.Ident
@@ -63,9 +64,11 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 
 		sortDeclaration tu decl 
 			| isExtern && isFunction = tu { extFunDefs = (extFunDefs tu ) ++ [declaration] }
-			| isExtern =  tu { extVariables = (extVariables tu )  ++ [declaration] }
-			| isTypedef =  tu { typeDefs = (typeDefs tu )  ++ [declaration] }
-			| isStatic =  tu { staticVariables = (staticVariables tu )  ++ [declaration] }
+			| isExtern = tu { extVariables = (extVariables tu )  ++ [declaration] }
+			| isTypedef = sortToTypes
+			| isStatic && isStruct && hasVariableName = sortToTypesAndVariables
+			| isStatic && isStruct = sortToTypes
+			| isStatic = sortToStatics
 			| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
 			where
 				declaration = globalDeclarationDefaults $ buildDeclaration decl
@@ -74,6 +77,12 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 				isTypedef = storage == Typedef
 				isStatic = storage == Static
 				isFunction = isFunctionType $ declarationType declaration
+				sortToStatics = tu { staticVariables = (staticVariables tu )  ++ [declaration] }
+				sortToTypes = tu { typeDefs = (typeDefs tu )  ++ [declaration] }
+				isStruct = "struct" `isPrefixOf` (declarationName declaration)
+				-- TODO: 
+				hasVariableName = False
+				sortToTypesAndVariables = undefined
 
 -- TODO: why compile declarations we might never reference? We should
 -- make this lazy. So a declaration only gets compiled when it's referenced
