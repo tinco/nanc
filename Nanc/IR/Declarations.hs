@@ -67,7 +67,8 @@ generateTypedef declaration = do
 		modify $ \s -> s { typeDefinitions = defs ++ [(name, typ)] }
 	where
 		name = declarationName declaration
-		typ = trace ("Typedef typ = " ++ (show $ declarationType declaration) ++ " of name " ++ (show name) ++ "\n") $ declarationType declaration
+		typ = declarationType declaration
+		--typ = trace ("Typedef typ = " ++ (show $ declarationType declaration) ++ " of name " ++ (show name) ++ "\n") $ declarationType declaration
 
 resolveTypeDefinitions :: Module ()
 resolveTypeDefinitions = do
@@ -80,7 +81,10 @@ resolveTypeDefinitions = do
 		resolveTypeDefinitions' direct [] = (direct, [])
 		resolveTypeDefinitions' direct ((e@(n, QualifiedType (TypeAlias s) _)):as) = case lookup s direct of
 			Just t -> resolveTypeDefinitions' ((n,t):direct) as
-			Nothing -> trace ("Can't find type for definition: " ++ s ++ " " ++ (show e)) $ undefined
+			-- HACK: omg maybe check if the first 7 are "struct " first?
+			Nothing -> case lookup (drop 7 s) direct of
+				Just t -> resolveTypeDefinitions' ((n,t):direct) as
+				Nothing -> trace ("Can't find type for definition: " ++ s ++ " " ++ (show e) ++ "\n" ++ (show direct)) $ undefined
 
 generateStaticVariable :: Declaration -> Module ()
 generateStaticVariable decl = do

@@ -62,6 +62,9 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 			asmDefs = (asmDefs tu) ++ [decl]
 		}
 
+--		sortDeclaration tu decl = trace ("Sorting declaration: " ++ (show declaration)) $ sortDeclaration' tu decl
+--			where
+--				declaration = globalDeclarationDefaults $ buildDeclaration decl
 		sortDeclaration tu decl 
 			| isExtern && isFunction = tu { extFunDefs = (extFunDefs tu ) ++ [declaration] }
 			| isExtern = tu { extVariables = (extVariables tu )  ++ [declaration] }
@@ -80,6 +83,19 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 				sortToStatics = tu { staticVariables = (staticVariables tu )  ++ [declaration] }
 				sortToTypes = tu { typeDefs = (typeDefs tu )  ++ [declaration] }
 				isStruct = "struct" `isPrefixOf` (declarationName declaration)
+
+				{-
+				-- HACK: This is crazy and might break stuff
+				addStructTypedef tu' = tu' {
+						typeDefs = (typeDefs tu') ++ [structTypeDef]
+					}
+					where
+						structTypeDef = Declaration {
+							declarationName = drop 7 (declarationName declaration),
+							declarationType = QualifiedType (TypeAlias $ declarationName declaration) defaultTypeQualifiers,
+							declarationSpecs = declarationSpecs declaration
+						} -}
+
 				-- TODO: 
 				hasVariableName = False
 				sortToTypesAndVariables = undefined
