@@ -55,6 +55,10 @@ isFunctionType :: QualifiedType -> Bool
 isFunctionType (QualifiedType (FT _) _) = True
 isFunctionType _ = False
 
+isStructType :: QualifiedType -> Bool
+isStructType (QualifiedType (CT (Struct _ _ _)) _) = True
+isStructType _ = False
+
 isSigned :: QualifiedType -> Bool
 isSigned (QualifiedType (ST c) _) = isSigned' c
 	where

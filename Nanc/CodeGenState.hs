@@ -109,11 +109,14 @@ entryBlockName :: String
 entryBlockName = "entry"
 
 addTypeDefn :: TypeTable -> (String, QualifiedType) -> Module()
-addTypeDefn ts (n,t) = do
-	let defn = AST.TypeDefinition (AST.Name n) (Just $ qualifiedTypeToType ts t)
-	llvmModuleState <- gets llvmModuleState
-	let defs = moduleDefinitions llvmModuleState
-	modify $ \s -> s { llvmModuleState = llvmModuleState { moduleDefinitions = defs ++ [defn] } }
+addTypeDefn ts (n,t) 
+	| isStructType t = do
+		let defn = AST.TypeDefinition (AST.Name n) (Just $ qualifiedTypeToType ts t)
+		llvmModuleState <- gets llvmModuleState
+		let defs = moduleDefinitions llvmModuleState
+		modify $ \s -> s { llvmModuleState = llvmModuleState { moduleDefinitions = defs ++ [defn] } }
+	-- other types can't be named types
+	| otherwise = return ()
 
 addDefn :: String -> QualifiedType -> Definition -> Module ()
 addDefn n qt d = do

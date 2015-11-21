@@ -77,7 +77,7 @@ resolveTypeDefinitions = do
 	let (result, _) = resolveTypeDefinitions' direct aliases
 	modify $ \s -> s { typeDefinitions = result }
 	-- uncomment next line to show list of types that are going to be compiled
-	-- traceShowM $ map fst result
+	traceShowM $ map fst result
 	-- use tail of result because we dont want va_list to be in there
 	mapM_ (addTypeDefn result) (tail result)
 	where
