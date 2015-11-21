@@ -69,12 +69,16 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 			| isExtern && isFunction = tu { extFunDefs = (extFunDefs tu ) ++ [declaration] }
 			| isExtern = tu { extVariables = (extVariables tu )  ++ [declaration] }
 			| isTypedef = sortToTypes
-			| isStatic && isStruct && hasVariableName = sortToTypesAndVariables
-			| isStatic && isStruct = sortToTypes
+			| isStatic && isStruct && hasVariableName = addStructTypedef $ sortToTypesAndVariables
+			| isStatic && isStruct = addStructTypedef $ sortToTypes
 			| isStatic = sortToStatics
 			| otherwise = trace ("got unknown toplevel decl: " ++ (show declaration)) undefined
 			where
+--				declName
+--					| isStruct = drop 7 (declarationName declaration')
+--					| otherwise = declarationName declaration'
 				declaration = globalDeclarationDefaults $ buildDeclaration decl
+--				declaration = declaration' { declarationName = declName }
 				storage = declStorage $ declarationSpecs declaration
 				isExtern = storage == Extern
 				isTypedef = storage == Typedef
@@ -84,17 +88,19 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 				sortToTypes = tu { typeDefs = (typeDefs tu )  ++ [declaration] }
 				isStruct = "struct" `isPrefixOf` (declarationName declaration)
 
-				{-
+				addStructTypedef = id
+				{-}
 				-- HACK: This is crazy and might break stuff
 				addStructTypedef tu' = tu' {
 						typeDefs = (typeDefs tu') ++ [structTypeDef]
 					}
 					where
 						structTypeDef = Declaration {
-							declarationName = drop 7 (declarationName declaration),
+							declarationName = declarationName declaration',
 							declarationType = QualifiedType (TypeAlias $ declarationName declaration) defaultTypeQualifiers,
 							declarationSpecs = declarationSpecs declaration
-						} -}
+						}
+				-- -}
 
 				-- TODO: 
 				hasVariableName = False

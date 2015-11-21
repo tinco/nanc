@@ -26,6 +26,7 @@ qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeTo
 qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
 qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
 qualifiedTypeToType m (QualifiedType (FT ft) qs) = functionTypeToType m ft qs
+--qualifiedTypeToType m (QualifiedType (TypeAlias ('s' : 't' : 'r' : 'u' : 'c' : 't' : ' ' : n)) qs) = NamedTypeReference (Name n)
 qualifiedTypeToType m (QualifiedType (TypeAlias n) qs) = NamedTypeReference (Name n)
 qualifiedTypeToType _ qt = trace ("Unimplemented type: " ++ show qt) undefined
 

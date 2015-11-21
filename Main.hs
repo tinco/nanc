@@ -22,7 +22,7 @@ main = do
 
 	-- putStrLn "Going to generate ast"
 	let ast = generate "test" parsed
-	-- putStrLn $ "Generated external declarations: " ++ (show ast)
+	putStrLn $ "Generated external declarations: " ++ (show ast)
 
 	ir <- withContext $ \x -> liftError $ withModuleFromAST x ast $ \m -> moduleLLVMAssembly m
 
