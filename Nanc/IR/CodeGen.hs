@@ -62,9 +62,9 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 			asmDefs = (asmDefs tu) ++ [decl]
 		}
 
---		sortDeclaration tu decl = trace ("Sorting declaration: " ++ (show declaration)) $ sortDeclaration' tu decl
---			where
---				declaration = globalDeclarationDefaults $ buildDeclaration decl
+		-- sortDeclaration tu decl = trace ("Sorting declaration: " ++ (show decl)) $ sortDeclaration' tu decl
+		-- 	where
+		-- 		declaration = globalDeclarationDefaults $ buildDeclaration decl
 		sortDeclaration tu decl 
 			| isExtern && isFunction = tu { extFunDefs = (extFunDefs tu ) ++ [declaration] }
 			| isExtern = tu { extVariables = (extVariables tu )  ++ [declaration] }
@@ -77,7 +77,7 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 --				declName
 --					| isStruct = drop 7 (declarationName declaration')
 --					| otherwise = declarationName declaration'
-				declaration = globalDeclarationDefaults $ buildDeclaration decl
+				declaration = globalDeclarationDefaults $ buildGlobalDeclaration decl
 --				declaration = declaration' { declarationName = declName }
 				storage = declStorage $ declarationSpecs declaration
 				isExtern = storage == Extern
@@ -105,6 +105,16 @@ sortDeclarations decls = sortDeclarations' emptyTranslUnit decls
 				-- TODO: 
 				hasVariableName = False
 				sortToTypesAndVariables = undefined
+
+-- At the global declaration scope a single struct with no members is a typedef and not
+-- a type alias.
+buildGlobalDeclaration decl@(CDecl [CTypeSpec (CSUType (CStruct CStructTag (Just (Ident n a b)) Nothing [] c) d)] [] e) =
+	buildDeclaration updatedDecl
+	where
+		-- replace Nothing by (Just [])
+		updatedDecl = CDecl [CTypeSpec (CSUType (CStruct CStructTag (Just (Ident n a b)) (Just []) [] c) d)] [] e
+
+buildGlobalDeclaration decl = buildDeclaration decl
 
 -- TODO: why compile declarations we might never reference? We should
 -- make this lazy. So a declaration only gets compiled when it's referenced
