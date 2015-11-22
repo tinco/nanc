@@ -49,7 +49,7 @@ complexTypeToType :: TypeDefinitions -> ComplexType -> TypeQualifiers -> Type
 complexTypeToType defs t@(Struct _ decls _) _ = StructureType False (map ((qualifiedTypeToType defs).declarationType) decls)
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
 complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
-complexTypeToType defs (Union decls _) _ = StructureType False (arrs ++ [datafield])
+complexTypeToType defs (Union _ decls _) _ = StructureType False (arrs ++ [datafield])
 	where
 		types = map ((qualifiedTypeToType defs).declarationType) decls
 		arrs =  map (ArrayType 0) types

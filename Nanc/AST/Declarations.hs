@@ -173,9 +173,11 @@ buildDeclarationSpecs specs = updateTypeQual (build emptyDeclarationSpec specs) 
 				parse (CSignedType n) = parse (CIntType n)
 				parse (CUnsigType n) = parse (CIntType n)
 
-				parseStruct (CStruct CStructTag (maybeIdent) (Just decls) attrs _) = CT (Struct (parseMaybeIdent maybeIdent) (map buildDeclaration decls) attrs)
+				parseStruct (CStruct CStructTag maybeIdent (Just decls) attrs _) = CT (Struct (parseMaybeIdent maybeIdent) (map buildDeclaration decls) attrs)
+				parseStruct (CStruct CUnionTag (Just (Ident n _ _)) Nothing [] _) = CT (Union (Just n) [] [])
+				parseStruct (CStruct CUnionTag maybeIdent (Just decls) attrs _) = CT (Union (parseMaybeIdent maybeIdent) (map buildDeclaration decls) attrs)
 				parseStruct s@(CStruct CStructTag (Just (Ident n _ _)) Nothing attrs _) = TypeAlias ("struct " ++ n)
-				parseStruct s@(CStruct CUnionTag Nothing (Just decls) attrs _) = CT (Union (map buildDeclaration decls) attrs)
+				parseStruct s = trace ("Unknown CStruct format: " ++ show s) undefined
 
 				parseMaybeIdent (Just (Ident s _ _)) = Just s
 				parseMaybeIdent Nothing = Nothing

@@ -1,5 +1,7 @@
 module Main where
 
+import System.Environment
+
 import Control.Monad
 import Control.Monad.Trans.Except
 
@@ -17,7 +19,13 @@ liftError = runExceptT >=> either fail return
 
 main :: IO ()
 main = do
-	parsed <- parseMyFile "test.c"
+	args <- getArgs
+
+	let filename = case (length args) of
+		0 -> "test.c"
+		_ -> head args
+
+	parsed <- parseMyFile filename
 	--printMyAST parsed
 
 	-- putStrLn "Going to generate ast"
