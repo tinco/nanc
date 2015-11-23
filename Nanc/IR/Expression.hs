@@ -147,6 +147,9 @@ binaryOp CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a)
 binaryOp CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
 binaryOp CNeqOp a b = liftM2 (,) (cmpOp CNeqOp a b) (return defaultBooleanType)
 binaryOp CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType)
+binaryOp CGrOp  a b = liftM2 (,) (cmpOp CGrOp a b) (return defaultBooleanType)
+binaryOp op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
+
 
 cmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
 cmpOp cmp a@(a',_) b | isInteger a' = iCmpOp cmp a b
@@ -163,10 +166,13 @@ iOpToPred :: Bool -> CBinaryOp -> I.IntegerPredicate
 iOpToPred _ CNeqOp = I.NE
 iOpToPred True CGeqOp = I.SGE
 iOpToPred False CGeqOp = I.UGE
+iOpToPred True CGrOp = I.SGT
+iOpToPred False CGrOp = I.UGT
 
 fOpToPred :: CBinaryOp -> F.FloatingPointPredicate
 fOpToPred CGeqOp = F.UEQ
 fOpToPred CNeqOp = F.UNE
+fOpToPred CGrOp = F.UGT
 
 intConst :: Integer -> AST.Operand
 intConst = intConst32
