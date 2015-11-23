@@ -12,6 +12,7 @@ import qualified LLVM.General.AST as AST
 
 import Nanc.CodeGenState
 import Nanc.AST
+import Nanc.AST.Declarations
 
 import Nanc.IR.Types
 import Nanc.IR.Expression
@@ -32,6 +33,9 @@ zeroReturn = void $ ret $ Just (intConst 0)
 
 generateBlockItem :: TypeTable -> CBlockItem -> Codegen ()
 generateBlockItem ts (CBlockStmt stat) = generateStatement ts stat
+generateBlockItem ts (CBlockDecl decl) = mapM_ declare declarations
+	where
+		declarations = buildDeclarations decl
 generateBlockItem _ i = trace ("unknown generate block item: " ++ (show i) ) $ undefined
 
 generateForStatement :: TypeTable -> Maybe CExpr -> Maybe CExpr -> Maybe CExpr -> CStat -> Codegen ()

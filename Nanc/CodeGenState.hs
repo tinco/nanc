@@ -237,6 +237,13 @@ local n t = LocalReference t n
 global :: Name -> Type -> Operand
 global n t = ConstantOperand . C.GlobalReference t $ n
 
+
+declare :: Declaration -> Codegen ()
+-- TODO we dont do anything yet with declarations
+-- when we get a typechecker we should obviously
+declare decl = return ()
+
+
 assign :: String -> Symbol -> Codegen ()
 assign var x = do
 	symtabs <- gets symboltables

@@ -48,6 +48,9 @@ buildDeclaration decl@(CDecl specs [] m) =
 
 buildDeclaration decl = trace ("Weird declaration: " ++ (show $ decl)) undefined
 
+buildDeclarations :: CDecl -> [Declaration]
+buildDeclarations (CDecl specs declrs m) = map (\ declr -> buildDeclaration (CDecl specs [declr] m)) declrs
+
 -- A derived type is a type with an indirect type such as functions, pointers and arrays. I.e. they
 -- are of type pointer *to* int, array *of* float.
 buildDerivedType :: QualifiedType -> [CDerivedDeclr] -> QualifiedType
