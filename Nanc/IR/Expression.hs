@@ -19,6 +19,7 @@ import qualified LLVM.General.AST.FloatingPointPredicate as F
 
 import Nanc.CodeGenState
 import Nanc.AST
+import Nanc.AST.Declarations
 
 import Nanc.IR.Types
 import Nanc.IR.Instructions
@@ -115,7 +116,11 @@ generateExpression ts (CConst (CStrConst (CString str _) _)) = do
 		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
 
 generateExpression _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
-generateExpression _ (CCast decl expr _) = trace "I don't know how to do CCast: " undefined
+generateExpression ts (CCast decl expr _) = do
+		(value, addr, _) <- generateExpression ts expr
+		return (value, addr, t)
+	where
+		t = declarationType.buildDeclaration $ decl
 
 generateExpression _ expr = trace ("encountered expr: " ++ (show expr)) undefined
 

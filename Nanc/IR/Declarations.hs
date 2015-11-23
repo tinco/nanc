@@ -179,7 +179,8 @@ extractDeclrName (CDeclr ident _ _ _ m) = maybe ("Anon" ++ (show $ metaToRandom 
 
 extractFnArgs :: TypeDefinitions -> CDeclr -> [Declaration]
 -- Only parse new style params
-extractFnArgs typeDefs (CDeclr _ [CFunDeclr (Right (params, mysteriousBool)) _ _] _ _ _) = map buildDeclaration params
+extractFnArgs typeDefs (CDeclr _  ((CFunDeclr (Right (params, mysteriousBool)) _ _):_) _ _ _) = map buildDeclaration params
+extractFnArgs typeDefs declrs = trace ("Dont know how to extract fnargs from: " ++ (show declrs)) undefined
 
 declsToFnArgs :: TypeTable -> [Declaration] -> [(AST.Type, AST.Name)]
 -- Only parse new style params
