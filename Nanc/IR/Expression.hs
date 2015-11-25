@@ -47,7 +47,7 @@ generateExpression ts (CVar (Ident name _ _) _) = do
 		QualifiedType (FT _) _ -> return (address, Nothing, typ)
 		_ -> do
 			let t = qualifiedTypeToType ts typ
-			value <- load (AST.pointerReferent t) address
+			value <- load t address
 			return (value, Just address, typ)
 
 -- var = bar
@@ -94,8 +94,8 @@ generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	let t = qualifiedTypeToType ts resultType
 	let idx = intConst $ fromIntegral i
 
-	resultAddr <- instr (AST.pointerReferent t) (AST.GetElementPtr True addr [idx] [])
-	value <- load (AST.pointerReferent t) resultAddr
+	resultAddr <- instr t (AST.GetElementPtr True addr [idx] [])
+	value <- load t resultAddr
 	return (value, Just resultAddr, resultType)
 
 -- (CConst (CCharConst '\n' ()))
@@ -178,10 +178,10 @@ intConst :: Integer -> AST.Operand
 intConst = intConst32
 
 intConst32 :: Integer -> AST.Operand
-intConst32 = AST.ConstantOperand . (C.Int 32)
+intConst32 = AST.ConstantOperand . C.Int 32
 
 intConst64 :: Integer -> AST.Operand
-intConst64 = AST.ConstantOperand . (C.Int 64)
+intConst64 = AST.ConstantOperand . C.Int 64
 
 isInteger :: AST.Operand -> Bool
 isInteger (AST.LocalReference (AST.IntegerType _) _) = True
