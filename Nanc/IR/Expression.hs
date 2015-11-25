@@ -52,7 +52,12 @@ generateExpression ts (CVar (Ident name _ _) _) = do
 
 -- var = bar
 generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
-	(_, Just addr, _) <- generateExpression ts leftExpr
+	exprResult <- generateExpression ts leftExpr
+	let addr = case exprResult of
+		(_, Just addr, _) -> addr
+		-- TODO typecheck if addr really is a pointer
+		(addr, Nothing, _typ) -> addr
+
 	(val, _, typ) <- generateExpression ts rightExpr
 	let t = qualifiedTypeToType ts typ
 	store t addr val
@@ -61,8 +66,11 @@ generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 -- *var
 generateExpression ts (CUnary CIndOp expr _) = do
 	traceM ("Dereferencing expression: " ++ (show expr)) 
-	(_, Just addr, typ) <- generateExpression ts expr
-	return (addr, Nothing, typ)
+	exprResult <- generateExpression ts expr
+	return $ case exprResult of
+		(_, Just addr, typ) -> (addr, Nothing, typ)
+		-- TODO typecheck if addr really is a pointer
+		(addr, Nothing, typ) -> (addr, Nothing, typ)
 
 -- var++
 generateExpression ts (CUnary CPostIncOp expr _) = do
