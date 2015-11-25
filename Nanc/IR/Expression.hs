@@ -115,6 +115,11 @@ generateExpression ts (CConst (CStrConst (CString str _) _)) = do
 		cnst = C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
 		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
 
+generateExpression ts (CConst (CCharConst (CChar chr _) _)) = return (result, Nothing, typ)
+	where
+		result = intConst8 $ fromIntegral $ ord chr
+		typ = QualifiedType (ST Char) (defaultTypeQualifiers { typeIsConst = True })
+		
 generateExpression _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
 generateExpression ts (CCast decl expr _) = do
 		(value, addr, _) <- generateExpression ts expr
@@ -176,6 +181,9 @@ fOpToPred CGrOp = F.UGT
 
 intConst :: Integer -> AST.Operand
 intConst = intConst32
+
+intConst8 :: Integer -> AST.Operand
+intConst8 = AST.ConstantOperand . C.Int 8
 
 intConst32 :: Integer -> AST.Operand
 intConst32 = AST.ConstantOperand . C.Int 32
