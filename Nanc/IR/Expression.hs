@@ -60,6 +60,7 @@ generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 
 -- *var
 generateExpression ts (CUnary CIndOp expr _) = do
+	traceM ("Dereferencing expression: " ++ (show expr)) 
 	(_, Just addr, typ) <- generateExpression ts expr
 	return (addr, Nothing, typ)
 
