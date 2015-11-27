@@ -50,6 +50,9 @@ add t a b = instr t $ Add False False a b []
 sub :: Type -> Operand -> Operand -> Codegen Operand
 sub t a b = instr t $ Sub False False a b []
 
+mul :: Type -> Operand -> Operand -> Codegen Operand
+mul t a b = instr t $ Mul False False a b []
+
 icmp :: I.IntegerPredicate -> Operand -> Operand -> Codegen Operand
 icmp p a b = instr booleanType $ ICmp p a b []
 

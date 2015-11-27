@@ -136,7 +136,16 @@ generateExpression ts (CCast decl expr _) = do
 	where
 		t = declarationType.buildDeclaration $ decl
 
-generateExpression _ expr = trace ("encountered expr: " ++ (show expr)) undefined
+generateExpression ts (CIndex subjectExpr expr _) = do
+	(_, (Just addr), typ) <- generateExpression ts subjectExpr
+	(index, _, _) <- generateExpression ts expr
+	let t = qualifiedTypeToType ts typ
+	delta <- mul (AST.IntegerType 64) (intConst64 $ fromIntegral $ sizeof t) index
+	newAddr <- add (AST.IntegerType 64) addr delta
+	value <- load t newAddr
+	return (value, Just newAddr, typ)
+
+generateExpression _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 
 lookupMember :: TypeTable -> QualifiedType -> String -> (Int, QualifiedType)
 lookupMember ts typ memName = (i, resultType)
