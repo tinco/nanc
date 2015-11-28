@@ -92,7 +92,7 @@ generateExpression ts (CUnary CPreDecOp expr _) = do
 generateExpression ts (CBinary op leftExpr rightExpr _) = do
 	(leftVal, _, typ) <- generateExpression ts leftExpr
 	(rightVal, _, typ2) <- generateExpression ts rightExpr
-	(result, t) <- binaryOp op (leftVal, typ) (rightVal, typ2)
+	(result, t) <- binaryOp ts op (leftVal, typ) (rightVal, typ2)
 	return (result, Nothing, t)
 
 -- CVar (Ident "_p" 14431 n) n
@@ -165,13 +165,16 @@ extractMembers ts (QualifiedType (Ptr s) _) = extractMembers ts s
 extractMembers ts s = trace ("Unexptected struct type: " ++ (show s)) undefined
 
 -- choose between icmp and fcmp
-binaryOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen (AST.Operand, QualifiedType)
-binaryOp CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a) 
-binaryOp CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
-binaryOp CNeqOp a b = liftM2 (,) (cmpOp CNeqOp a b) (return defaultBooleanType)
-binaryOp CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType)
-binaryOp CGrOp  a b = liftM2 (,) (cmpOp CGrOp a b) (return defaultBooleanType)
-binaryOp op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
+binaryOp :: TypeTable -> CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen (AST.Operand, QualifiedType)
+binaryOp _ CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a) 
+binaryOp _ CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
+binaryOp _ CNeqOp a b = liftM2 (,) (cmpOp CNeqOp a b) (return defaultBooleanType)
+binaryOp _ CEqOp a b = liftM2 (,) (cmpOp CEqOp a b) (return defaultBooleanType)
+binaryOp _ CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType)
+binaryOp _ CGrOp  a b = liftM2 (,) (cmpOp CGrOp a b) (return defaultBooleanType)
+binaryOp ts CMulOp a b = liftM2 (,) (mul (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CSubOp a b = liftM2 (,) (sub (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp _ op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
 
 
 cmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
@@ -191,11 +194,13 @@ iOpToPred True CGeqOp = I.SGE
 iOpToPred False CGeqOp = I.UGE
 iOpToPred True CGrOp = I.SGT
 iOpToPred False CGrOp = I.UGT
+iOpToPred _ CEqOp = I.EQ
 
 fOpToPred :: CBinaryOp -> F.FloatingPointPredicate
-fOpToPred CGeqOp = F.UEQ
+fOpToPred CGeqOp = F.UGE
 fOpToPred CNeqOp = F.UNE
 fOpToPred CGrOp = F.UGT
+fOpToPred CEqOp = F.UEQ
 
 intConst :: Integer -> AST.Operand
 intConst = intConst32
