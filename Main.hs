@@ -2,6 +2,7 @@ module Main where
 
 import System.Environment
 import System.FilePath
+import System.Exit
 
 import qualified Data.Text as T
 
@@ -26,4 +27,6 @@ main = do
 		0 -> "test.c"
 		_ -> head args
 
-	compile filename (dropExtension filename)
+	exitCode <- compile filename (dropExtension filename)
+	exitWith exitCode
+

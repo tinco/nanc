@@ -2,6 +2,9 @@ module Nanc.Compiler where
 
 import System.Environment
 import System.IO
+import System.Process
+import System.FilePath
+import System.Exit
 
 import Control.Monad
 import Control.Monad.Trans.Except
@@ -16,6 +19,7 @@ import Nanc.IR.CodeGen
 import qualified LLVM.General.AST as LLA
 import qualified LLVM.General.Context as LLC
 import qualified LLVM.General.Module as LLM
+import qualified LLVM.General.Target as LLT
 
 import System.IO.Temp
 import qualified Data.ByteString as BS
@@ -26,14 +30,16 @@ import qualified Data.Text.IO as TIO
 liftError :: ExceptT String IO a -> IO a
 liftError = runExceptT >=> either fail return
 
-compile :: FilePath -> FilePath -> IO ()
+compile :: FilePath -> FilePath -> IO (ExitCode)
 compile i o = do
 	input <- TIO.readFile i
 	preprocessed <- preprocess i input
 	parsed <- parse' i preprocessed
 	let transformed = transformToLLVM parsed
 	object <- generateObject transformed
-	BS.writeFile o object
+	let objectName = addExtension o ".o"
+	BS.writeFile objectName object
+	linkIntoExecutable objectName o
 
 transformToLLVM :: CTranslUnit -> LLA.Module
 transformToLLVM parsed = generate "UNNAMED_MODULE" parsed
@@ -49,7 +55,10 @@ generateBC ast = do
 
 generateObject :: LLA.Module -> IO BS.ByteString
 generateObject ast = do
-	LLC.withContext $ \ctx -> liftError $ LLM.withModuleFromAST ctx ast $ \m -> LLM.moduleObject m
+	liftError $ LLT.withHostTargetMachine $ \tgm -> do
+		LLC.withContext $ \ctx ->
+			liftError $ LLM.withModuleFromAST ctx ast $ \m ->
+				liftError $ LLM.moduleObject tgm m
 
 parse :: FilePath -> T.Text -> Either ParseError CTranslUnit
 parse f c = parseC (encodeUtf8 c) (initPos f)
@@ -58,6 +67,10 @@ parse' :: FilePath -> T.Text -> IO CTranslUnit
 parse' f c = case parse f c of
 		Left parseErr -> error ("Parse error: "++ (show parseErr))
 		Right ast -> return ast
+
+linkIntoExecutable :: FilePath -> FilePath -> IO (ExitCode)
+linkIntoExecutable obj o = do
+	rawSystem "gcc" ["-o", o, obj]
 
 preprocess :: FilePath -> T.Text -> IO T.Text
 preprocess f c = withSystemTempFile f preprocess'
