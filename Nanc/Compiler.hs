@@ -32,16 +32,24 @@ compile i o = do
 	preprocessed <- preprocess i input
 	parsed <- parse' i preprocessed
 	let transformed = transformToLLVM parsed
-	ir <- generateIR transformed
-	TIO.writeFile o ir
+	object <- generateObject transformed
+	BS.writeFile o object
 
 transformToLLVM :: CTranslUnit -> LLA.Module
 transformToLLVM parsed = generate "UNNAMED_MODULE" parsed
 
 generateIR :: LLA.Module -> IO T.Text
 generateIR ast = do
-	ir <- LLC.withContext $ \x -> liftError $ LLM.withModuleFromAST x ast $ \m -> LLM.moduleLLVMAssembly m
+	ir <- LLC.withContext $ \ctx -> liftError $ LLM.withModuleFromAST ctx ast $ \m -> LLM.moduleLLVMAssembly m
 	return $ T.pack ir
+
+generateBC :: LLA.Module -> IO BS.ByteString
+generateBC ast = do
+	LLC.withContext $ \ctx -> liftError $ LLM.withModuleFromAST ctx ast $ \m -> LLM.moduleBitcode m
+
+generateObject :: LLA.Module -> IO BS.ByteString
+generateObject ast = do
+	LLC.withContext $ \ctx -> liftError $ LLM.withModuleFromAST ctx ast $ \m -> LLM.moduleObject m
 
 parse :: FilePath -> T.Text -> Either ParseError CTranslUnit
 parse f c = parseC (encodeUtf8 c) (initPos f)
