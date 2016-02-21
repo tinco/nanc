@@ -32,8 +32,8 @@ liftError = runExceptT >=> either fail return
 
 compile :: FilePath -> FilePath -> IO (ExitCode)
 compile i o = do
-	input <- TIO.readFile i
-	preprocessed <- preprocess i input
+	src <- TIO.readFile i
+	preprocessed <- preprocess i src
 	parsed <- parse' i preprocessed
 	let transformed = transformToLLVM parsed
 	object <- generateObject transformed

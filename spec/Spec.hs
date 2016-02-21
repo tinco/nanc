@@ -1,11 +1,15 @@
 import Test.Hspec
-import Control.Exception (evaluate)
+
+import Nanc.Compiler
+import qualified Data.Text.IO as TIO
+import Data.Either
 
 main :: IO ()
 main = hspec $ do
-	describe "Prelude.head" $ do
-		it "returns the first element of a list" $ do
-			head [23 ..] `shouldBe` (23 :: Int)
+	describe "Nanc.Compiler.parse" $ do
+		it "Parses hello world" $ do
+			let fileName = "test.c"
+			src <- TIO.readFile fileName
+			preprocessed <- preprocess fileName src
+			parse fileName preprocessed `shouldSatisfy` isRight
 
-		it "throws an exception if used with an empty list" $ do
-			evaluate (head []) `shouldThrow` anyException

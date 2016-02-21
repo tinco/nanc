@@ -4,20 +4,8 @@ import System.Environment
 import System.FilePath
 import System.Exit
 
-import qualified Data.Text as T
-
-import Control.Monad
-import Control.Monad.Trans.Except
-
-import Language.C
-import Language.C.System.Preprocess
-import Language.C.System.GCC
-
-import Nanc.IR.CodeGen
 import Nanc.Compiler
 
-import LLVM.General.Context
-import LLVM.General.Module
 
 main :: IO ()
 main = do

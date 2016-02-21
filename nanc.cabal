@@ -58,12 +58,10 @@ executable nanc
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.8, language-c >= 0.4.7, llvm-general >= 3.4.5.4, llvm-general-pure >= 3.4.5.4,
-                       containers, mtl >=2.2.1, transformers >=0.4.1.0, temporary >= 1.2, text, bytestring,
-                       filepath, process
+  build-depends:       base, filepath, nanc
   
   -- Directories containing source files.
-  -- hs-source-dirs:      
+  hs-source-dirs:      main
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
@@ -81,6 +79,21 @@ library
   build-depends:       base >=4.8, language-c >= 0.4.7, llvm-general >= 3.4.5.4, llvm-general-pure >= 3.4.5.4,
                        containers, mtl >=2.2.1, transformers >=0.4.1.0, temporary >= 1.2, text, bytestring,
                        filepath, process
+
+  exposed-modules:
+    Nanc.Compiler
+
+  other-modules:
+    Nanc.AST
+    Nanc.AST.Declarations
+    Nanc.CodeGenState
+    Nanc.IR.CodeGen
+    Nanc.IR.Declarations
+    Nanc.IR.Expression
+    Nanc.IR.Instructions
+    Nanc.IR.Statement
+    Nanc.IR.Types
+
   
   -- Directories containing source files.
   -- hs-source-dirs:      
@@ -102,3 +115,4 @@ test-suite spec
       base    == 4.*
     , nanc
     , hspec   == 2.*
+    , text
