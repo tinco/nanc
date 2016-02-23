@@ -14,6 +14,7 @@ import Language.C.Syntax.AST
 
 import LLVM.General.AST.AddrSpace
 import qualified LLVM.General.AST as AST
+import qualified LLVM.General.AST.Type as LT
 import qualified LLVM.General.AST.IntegerPredicate as I
 import qualified LLVM.General.AST.FloatingPointPredicate as F
 
@@ -60,7 +61,12 @@ generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 
 	(val, _, typ) <- generateExpression ts rightExpr
 	let t = qualifiedTypeToType ts typ
-	store t addr val
+
+	let idx = intConst $ fromIntegral 0
+	let pt = LT.ptr t
+	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
+
+	store t resultAddr val
 	return (val, Nothing, typ)
 
 -- *var
@@ -77,7 +83,12 @@ generateExpression ts (CUnary CPostIncOp expr _) = do
 	(val, Just addr, typ) <- generateExpression ts expr
 	let t = qualifiedTypeToType ts typ
 	inc_val <- add t val (intConst 1)
-	store t addr inc_val
+
+	let idx = intConst $ fromIntegral 0
+	let pt = LT.ptr t
+	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
+
+	store t resultAddr inc_val
 	return (val, Nothing, typ)
 
 -- --var;
@@ -85,7 +96,12 @@ generateExpression ts (CUnary CPreDecOp expr _) = do
 	(val, Just addr, typ) <- generateExpression ts expr
 	let t = qualifiedTypeToType ts typ
 	dec_val <- add t val (intConst (-1))
-	store t addr dec_val
+
+	let idx = intConst $ fromIntegral 0
+	let pt = LT.ptr t
+	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
+
+	store t resultAddr dec_val
 	return (dec_val, Nothing, typ)
 
 --  Binary expressions
@@ -101,9 +117,10 @@ generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	let (i, resultType) = lookupMember ts typ memName
 
 	let t = qualifiedTypeToType ts resultType
+	let pt = LT.ptr t
 	let idx = intConst $ fromIntegral i
 
-	resultAddr <- instr t (AST.GetElementPtr True addr [idx] [])
+	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
 	value <- load t resultAddr
 	return (value, Just resultAddr, resultType)
 
@@ -203,7 +220,7 @@ fOpToPred CGrOp = F.UGT
 fOpToPred CEqOp = F.UEQ
 
 intConst :: Integer -> AST.Operand
-intConst = intConst32
+intConst = intConst64
 
 intConst8 :: Integer -> AST.Operand
 intConst8 = AST.ConstantOperand . C.Int 8

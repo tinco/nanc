@@ -56,7 +56,7 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 
 	(cond, _, _) <- case maybeExpr2 of
 		Just expr -> generateExpression ts expr
-		Nothing -> return (intConst32 1, undefined, undefined)
+		Nothing -> return (intConst64 1, undefined, undefined)
 
 	cbr cond bodyBlock exitBlock
 

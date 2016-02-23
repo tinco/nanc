@@ -23,7 +23,7 @@ qualifiedTypeToType m (QualifiedType (CT t) qs) = complexTypeToType m t qs
 qualifiedTypeToType m (QualifiedType (Ptr (QualifiedType (ST Void) _)) _) = PointerType (IntegerType 8) (AddrSpace 0)
 qualifiedTypeToType m (QualifiedType (Ptr qt@(QualifiedType (FT _) _)) qs) = trace "Dodgy function pointer" $ PointerType (IntegerType 64) (AddrSpace 0)
 qualifiedTypeToType m (QualifiedType (Ptr qt) qs) = PointerType (qualifiedTypeToType m qt) (AddrSpace 0)
-qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 32
+qualifiedTypeToType _ (QualifiedType NoTypeSpec _) = IntegerType 64
 qualifiedTypeToType m (QualifiedType (Arr l qt) qs) = ArrayType l (qualifiedTypeToType m qt)
 qualifiedTypeToType m (QualifiedType (FT ft) qs) = functionTypeToType m ft qs
 --qualifiedTypeToType m (QualifiedType (TypeAlias ('s' : 't' : 'r' : 'u' : 'c' : 't' : ' ' : n)) qs) = NamedTypeReference (Name n)
@@ -31,13 +31,13 @@ qualifiedTypeToType m (QualifiedType (TypeAlias n) qs) = NamedTypeReference (Nam
 qualifiedTypeToType _ qt = trace ("Unimplemented type: " ++ show qt) undefined
 
 simpleTypeToType :: SimpleType -> TypeQualifiers -> Type
-simpleTypeToType SignedInt _ = IntegerType 32
+simpleTypeToType SignedInt _ = IntegerType 64
 simpleTypeToType Void _ = VoidType
 simpleTypeToType SignedLongLongInt _ = IntegerType 64
 simpleTypeToType SignedShortInt _ = IntegerType 16
 simpleTypeToType Char _ = IntegerType 8
 simpleTypeToType UnsignedLongInt _ = IntegerType 64
-simpleTypeToType UnsignedInt _ = IntegerType 32
+simpleTypeToType UnsignedInt _ = IntegerType 64
 simpleTypeToType UnsignedShortInt _ = IntegerType 16
 simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefined
 
@@ -48,7 +48,7 @@ simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefi
 complexTypeToType :: TypeDefinitions -> ComplexType -> TypeQualifiers -> Type
 complexTypeToType defs t@(Struct _ decls _) _ = StructureType False (map ((qualifiedTypeToType defs).declarationType) decls)
 complexTypeToType defs (TD name) _ = qualifiedTypeToType defs $ lookupType defs name
-complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 32
+complexTypeToType defs (E e@(CEnum _ (Just entries) _ a)) _ = IntegerType 64
 complexTypeToType defs (Union _ decls _) _ = StructureType False (arrs ++ [datafield])
 	where
 		types = map ((qualifiedTypeToType defs).declarationType) decls

@@ -88,6 +88,9 @@ alloca ty = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
 
 store :: Type -> Operand -> Operand -> Codegen Operand
 store t ptr val = instr t $ Store False ptr val Nothing 0 []
+--	where
+--		ptr' = trace ("Going to store ptr is: " ++  show ptr) ptr
+--		val' = trace ("Going to store val is: " ++  show val) val
 
 load :: Type -> Operand -> Codegen Operand
 load t ptr = instr t $ Load False ptr Nothing 0 []
