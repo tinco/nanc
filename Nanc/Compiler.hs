@@ -41,6 +41,11 @@ compile i o = do
 	BS.writeFile objectName object
 	linkIntoExecutable objectName o
 
+compileSrcToIR :: FilePath -> T.Text -> IO T.Text
+compileSrcToIR i src = do
+	parsed <- parse' i src
+	generateIR $ transformToLLVM parsed
+
 transformToLLVM :: CTranslUnit -> LLA.Module
 transformToLLVM parsed = generate "UNNAMED_MODULE" parsed
 
