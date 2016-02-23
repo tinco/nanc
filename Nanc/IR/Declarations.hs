@@ -116,9 +116,9 @@ buildGlobalSymbolTable [] = []
 buildGlobalSymbolTable ((name,qt,AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
 	where
 		b :: Global -> (String, Symbol)
-		b (GlobalVariable n _ _ _ _ _ _ t _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
-		b (GlobalAlias (AST.Name name) _ _ _ _) = trace ("unsupported global alias: " ++ name) (name, undefined)
-		b (Function _ _ _ _ t n _ _ _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
+		b (GlobalVariable n _ _ _ _ _ _ _ t _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
+		b (GlobalAlias (AST.Name name) _ _ _ _ _ _ _) = trace ("unsupported global alias: " ++ name) (name, undefined)
+		b (Function _ _ _ _ _ t n _ _ _ _ _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
 {- GlobalVariable Name Linkage Visibility Bool AddrSpace Bool Bool Type (Maybe Constant) (Maybe String) Word32	
    GlobalAlias Name Linkage Visibility Type Constant	
    Function Linkage Visibility CallingConvention [ParameterAttribute] Type Name ([Parameter], Bool) [FunctionAttribute] (Maybe String) Word32 (Maybe String) [BasicBlock] -}

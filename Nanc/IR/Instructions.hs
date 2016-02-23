@@ -81,7 +81,7 @@ ret :: Maybe Operand -> Codegen (Named Terminator)
 ret val = terminator $ Do $ Ret val []
 
 call :: Operand -> [Operand] -> Codegen Operand
-call fn args = instr double $ Call False CC.C [] (Right fn) (toArgs args) [] []
+call fn args = instr double $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []
