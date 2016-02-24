@@ -116,3 +116,5 @@ test-suite spec
     , nanc
     , hspec   == 2.*
     , text
+    , directory
+    , mtl
