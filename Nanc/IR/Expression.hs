@@ -106,15 +106,17 @@ generateExpression ts (CVar (Ident name _ _) _) = do
 -- var = bar
 generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 	(addr, typ) <- expressionAddress ts leftExpr
-	(val, typ) <- generateExpression ts rightExpr
-	let t = qualifiedTypeToType ts typ
+	(val, typ2) <- generateExpression ts rightExpr
 
-	let idx = intConst $ fromIntegral 0
-	let pt = LT.ptr t
-	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
-
-	store t resultAddr val
-	return (val, typ)
+	if typ == typ2
+		then do 
+			let t = qualifiedTypeToType ts typ2
+			let idx = intConst $ fromIntegral 0
+			let pt = LT.ptr t
+			resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
+			store t resultAddr val
+			return (val, typ)
+		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2))
 
 -- *var
 generateExpression ts (CUnary CIndOp expr _) = do

@@ -28,15 +28,26 @@ data SimpleType =
 	LongDouble |
 	Bool |
 	Void
+	deriving (Show, Eq)
+
+data ComplexType = Struct !(Maybe String) ![Declaration] ![CAttr] | Union !(Maybe String) 
+	![Declaration] ![CAttr] | E !CEnum | TD !String | TOE !CExpr | TOT !CDecl 
 	deriving (Show)
 
-data ComplexType = Struct !(Maybe String) ![Declaration] ![CAttr] | Union !(Maybe String) ![Declaration] ![CAttr] | E !CEnum | TD !String | TOE !CExpr | TOT !CDecl deriving (Show)
+instance Eq ComplexType where
+	a == b = True
 
-data FunctionType = FunctionType !QualifiedType ![(QualifiedType, String)] deriving (Show)
+data FunctionType = FunctionType !QualifiedType ![(QualifiedType, String)] 
+	deriving (Show, Eq)
 
-data TypeSpec = Ptr !QualifiedType | CT !ComplexType | ST !SimpleType | FT !FunctionType | Arr !Word64 !QualifiedType | TypeAlias !String | NoTypeSpec | TypeType deriving (Show)
+data TypeSpec = Ptr !QualifiedType | CT !ComplexType | ST !SimpleType | FT !FunctionType | Arr !Word64 !QualifiedType | TypeAlias !String | NoTypeSpec | TypeType
+	deriving (Show, Eq)
 
-data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers deriving (Show)
+data QualifiedType = QualifiedType !TypeSpec !TypeQualifiers 
+	deriving (Show)
+
+instance Eq QualifiedType where
+	(QualifiedType t _) == (QualifiedType t2 _) = t == t2
 
 data Signedness = Signed | Unsigned
 
@@ -82,7 +93,7 @@ data TypeQualifiers = TypeQualifiers {
 	typeIsConst :: Bool,
 	typeIsRestrict :: Bool,
 	typeIsInline :: Bool
-} deriving (Show)
+} deriving (Show, Eq)
 
 defaultTypeQualifiers :: TypeQualifiers
 defaultTypeQualifiers = TypeQualifiers False False False False
@@ -98,11 +109,11 @@ data DeclarationSpecs = DeclarationSpecs {
 	declStorageNodes :: [NodeInfo],
 	declTypeNodes :: [NodeInfo],
 	declQualifierNodes :: [NodeInfo]
-} deriving (Show)
+} deriving (Show, Eq)
 
 data Declaration = Declaration {
 	declarationName :: String,
 	declarationSpecs :: DeclarationSpecs,
 	declarationType :: QualifiedType
-} deriving (Show)
+} deriving (Show, Eq)
 
