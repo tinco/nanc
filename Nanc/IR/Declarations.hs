@@ -111,7 +111,7 @@ generateStaticVariable decl = do
 		typ = declType $ declarationSpecs decl
 
 -- buildGlobalSymbolTable :: [GlobalDeclaration] -> SymbolTable
-buildGlobalSymbolTable :: [(String, QualifiedType, AST.Definition)] -> [(String, (Operand, QualifiedType))]
+buildGlobalSymbolTable :: [(String, QualifiedType, AST.Definition)] -> SymbolTable
 buildGlobalSymbolTable [] = []
 buildGlobalSymbolTable ((name,qt,AST.GlobalDefinition gd):rest) = (b gd): buildGlobalSymbolTable rest
 	where

@@ -26,40 +26,87 @@ import Nanc.IR.Types
 import Nanc.IR.Instructions
 import qualified LLVM.General.AST.Constant as C
 
-fst3 :: (a, b, c) -> a
-fst3 (x, _, _) = x
+{-}
+---
+So generateExpression has a horrible signature.
 
-generateExpression :: TypeTable -> CExpr -> Codegen (
-		AST.Operand,      -- return value
-		Maybe AST.Operand, -- address if value has an address
-		QualifiedType -- Type of return value
-	)
+var x;
+x += 1;
+print(x);
+->
+
+declare x
+v <- takeValue 'x'
+a <- takeAddress 'x'
+store
+
+we want two functions
+
+expressionValue :: TypeTable -> CExpr -> Codegen (AST.Operand, QualifiedType)
+expressionAddress :: TypeTable -> CExpr -> Codegen (AST.Operand, QualifiedType)
+
+---
+ -}
+
+type ExpressionResult = ( AST.Operand, QualifiedType )
+
+expressionAddress :: TypeTable -> CExpr -> Codegen ExpressionResult
+
+-- var
+expressionAddress ts (CVar (Ident name _ _) _) = do
+	(address, typ) <- getvar name
+	let t = qualifiedTypeToType ts typ
+	return (address, typ)
+
+-- CVar (Ident "_p" 14431 n) n
+expressionAddress ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
+	(addr, typ) <- expressionAddress ts subjectExpr
+	let (i, resultType) = lookupMember ts typ memName
+
+	let t = qualifiedTypeToType ts resultType
+	let pt = LT.ptr t
+	let idx = intConst $ fromIntegral i
+
+	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
+	return (resultAddr, resultType)
+
+expressionAddress ts (CCast decl expr _) = do
+		(addr, _) <- expressionAddress ts expr
+		return (addr, t)
+	where
+		t = declarationType.buildDeclaration $ decl
+
+expressionAddressys ts (CIndex subjectExpr expr _) = do
+	(addr, typ) <- expressionAddress ts subjectExpr
+	(index, _) <- generateExpression ts expr
+	let t = qualifiedTypeToType ts typ
+	delta <- mul (AST.IntegerType 64) (intConst64 $ fromIntegral $ sizeof t) index
+	newAddr <- add (AST.IntegerType 64) addr delta
+	return (newAddr, typ)
+
+generateExpression :: TypeTable -> CExpr -> Codegen ExpressionResult
+
 -- var()
 generateExpression ts (CCall fn' args' _) = do
 	args <- mapM (generateExpression ts) args'
-	(fn,_,t) <- generateExpression ts fn'
-	result <- call fn (map fst3 args)
-	return (result, Nothing, returnType t)
+	(fn,t) <- generateExpression ts fn'
+	result <- call fn (map fst args)
+	return (result, returnType t)
 
 -- var
 generateExpression ts (CVar (Ident name _ _) _) = do
 	(address, typ) <- getvar name
 	case typ of
-		QualifiedType (FT _) _ -> return (address, Nothing, typ)
+		QualifiedType (FT _) _ -> return (address, typ)
 		_ -> do
 			let t = qualifiedTypeToType ts typ
 			value <- load t address
-			return (value, Just address, typ)
+			return (value, typ)
 
 -- var = bar
 generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
-	exprResult <- generateExpression ts leftExpr
-	let addr = case exprResult of
-		(_, Just addr, _) -> addr
-		-- TODO typecheck if addr really is a pointer
-		(addr, Nothing, _typ) -> addr
-
-	(val, _, typ) <- generateExpression ts rightExpr
+	(addr, typ) <- expressionAddress ts leftExpr
+	(val, typ) <- generateExpression ts rightExpr
 	let t = qualifiedTypeToType ts typ
 
 	let idx = intConst $ fromIntegral 0
@@ -67,20 +114,18 @@ generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
 
 	store t resultAddr val
-	return (val, Nothing, typ)
+	return (val, typ)
 
 -- *var
 generateExpression ts (CUnary CIndOp expr _) = do
 	traceM ("Dereferencing expression: " ++ (show expr)) 
-	exprResult <- generateExpression ts expr
-	return $ case exprResult of
-		(_, Just addr, typ) -> (addr, Nothing, typ)
-		-- TODO typecheck if addr really is a pointer
-		(addr, Nothing, typ) -> (addr, Nothing, typ)
+	expressionAddress ts expr
 
 -- var++
 generateExpression ts (CUnary CPostIncOp expr _) = do
-	(val, Just addr, typ) <- generateExpression ts expr
+	(addr, typ) <- expressionAddress ts expr
+	(val, typ) <- generateExpression ts expr
+
 	let t = qualifiedTypeToType ts typ
 	inc_val <- add t val (intConst 1)
 
@@ -89,11 +134,13 @@ generateExpression ts (CUnary CPostIncOp expr _) = do
 	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
 
 	store t resultAddr inc_val
-	return (val, Nothing, typ)
+	return (val, typ)
 
 -- --var;
 generateExpression ts (CUnary CPreDecOp expr _) = do
-	(val, Just addr, typ) <- generateExpression ts expr
+	(addr, typ) <- expressionAddress ts expr
+	(val, typ) <- generateExpression ts expr
+
 	let t = qualifiedTypeToType ts typ
 	dec_val <- add t val (intConst (-1))
 
@@ -102,31 +149,25 @@ generateExpression ts (CUnary CPreDecOp expr _) = do
 	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
 
 	store t resultAddr dec_val
-	return (dec_val, Nothing, typ)
+	return (dec_val, typ)
 
 --  Binary expressions
 generateExpression ts (CBinary op leftExpr rightExpr _) = do
-	(leftVal, _, typ) <- generateExpression ts leftExpr
-	(rightVal, _, typ2) <- generateExpression ts rightExpr
+	(leftVal, typ) <- generateExpression ts leftExpr
+	(rightVal, typ2) <- generateExpression ts rightExpr
 	(result, t) <- binaryOp ts op (leftVal, typ) (rightVal, typ2)
-	return (result, Nothing, t)
+	return (result, t)
 
 -- CVar (Ident "_p" 14431 n) n
-generateExpression ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
-	(_, Just addr, typ) <- generateExpression ts subjectExpr
-	let (i, resultType) = lookupMember ts typ memName
-
-	let t = qualifiedTypeToType ts resultType
-	let pt = LT.ptr t
-	let idx = intConst $ fromIntegral i
-
-	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
-	value <- load t resultAddr
-	return (value, Just resultAddr, resultType)
+generateExpression ts m@(CMember subjectExpr (Ident memName _ _) _bool _) = do
+	(addr, typ) <- expressionAddress ts m
+	let t = qualifiedTypeToType ts typ
+	value <- load t addr
+	return (value, typ)
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, Nothing, typ)
+generateExpression _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, typ)
 	where
 		result = intConst64 $ fromIntegral i
 		typ = QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True })
@@ -136,31 +177,28 @@ generateExpression ts (CConst (CStrConst (CString str _) _)) = do
 		let t = qualifiedTypeToType ts typ
 		let addr = global (AST.Name name) t
 		result <- instr (AST.PointerType (AST.IntegerType 8) (AddrSpace 0)) (AST.GetElementPtr True addr [intConst64 0, intConst64 0] [])
-		return (result, Nothing, typ)
+		return (result, typ)
 	where
 		cnst = C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
 		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
 
-generateExpression ts (CConst (CCharConst (CChar chr _) _)) = return (result, Nothing, typ)
+generateExpression ts (CConst (CCharConst (CChar chr _) _)) = return (result, typ)
 	where
 		result = intConst8 $ fromIntegral $ ord chr
 		typ = QualifiedType (ST Char) (defaultTypeQualifiers { typeIsConst = True })
 		
 generateExpression _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
 generateExpression ts (CCast decl expr _) = do
-		(value, addr, _) <- generateExpression ts expr
-		return (value, addr, t)
+		(value, _) <- generateExpression ts expr
+		return (value, t)
 	where
 		t = declarationType.buildDeclaration $ decl
 
-generateExpression ts (CIndex subjectExpr expr _) = do
-	(_, (Just addr), typ) <- generateExpression ts subjectExpr
-	(index, _, _) <- generateExpression ts expr
+generateExpression ts i@(CIndex subjectExpr expr _) = do
+	(addr, typ) <- expressionAddress ts i
 	let t = qualifiedTypeToType ts typ
-	delta <- mul (AST.IntegerType 64) (intConst64 $ fromIntegral $ sizeof t) index
-	newAddr <- add (AST.IntegerType 64) addr delta
-	value <- load t newAddr
-	return (value, Just newAddr, typ)
+	value <- load t addr
+	return (value, typ)
 
 generateExpression _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 

@@ -26,21 +26,7 @@ main = hspec $ do
 			True `shouldSatisfy` ( /= False )
 	
 	describe "Nanc.Compiler.generateIR" $ do
-		it "Generates IR for sanity" $ do
-			src <- testFile "0001-sanity"
-			ir <- compileSrcToIR "0001-sanity.c" src
-			ir `shouldSatisfy` (/= T.empty)
-
-		it "Generates IR for global" $ do
-			--	Assertion failed: (getOperand(0)->getType() 
-			--	== cast<PointerType>(getOperand(1)->getType())->getElementType()
-			--	  && "Ptr must be a pointer to Val type!")
-			--	  , function AssertOK, file Instr
-			src <- testFile "0002-global1"
-			ir <- compileSrcToIR "0002-global2.c" src
-			ir `shouldSatisfy` (/= T.empty)
-
-		describe "Transforms all execute tests to llvm ast" $ do
+		describe "Generates IR for execute tests" $ do
 			let runTest (name, src) = do
 				it ("Transforms " ++ name) $ do
 					let (Right ast) = parse "global" src

@@ -238,11 +238,14 @@ global :: Name -> Type -> Operand
 global n t = ConstantOperand . C.GlobalReference t $ n
 
 
-declare :: Declaration -> Codegen ()
+declare :: TypeTable -> Declaration -> Codegen ()
 -- TODO we dont do anything yet with declarations
 -- when we get a typechecker we should obviously
-declare decl = return ()
-
+declare ts decl = assign name (ref, typ)
+	where
+		name = declarationName decl
+		typ = declarationType decl
+		ref = local (Name name) (qualifiedTypeToType ts typ)
 
 assign :: String -> Symbol -> Codegen ()
 assign var x = do
@@ -251,7 +254,7 @@ assign var x = do
 
 symbolLookup :: String -> [SymbolTable] -> Maybe Symbol
 symbolLookup name (t:rest) = case lookup name t of
-	Just operand -> Just operand
+	Just symbol -> Just symbol
 	Nothing -> symbolLookup name rest
 symbolLookup _ [] = Nothing
 

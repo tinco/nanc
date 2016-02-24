@@ -21,7 +21,7 @@ import Nanc.IR.Instructions
 generateStatement :: TypeTable -> CStat -> Codegen ()
 generateStatement ts (CExpr expr _) = void $ generateExpression ts (fromJust expr)
 generateStatement _ (CReturn Nothing _)= void $ ret Nothing
-generateStatement ts (CReturn (Just expr) _) = void $ generateExpression ts expr >>= ret . Just . fst3
+generateStatement ts (CReturn (Just expr) _) = void $ generateExpression ts expr >>= ret . Just . fst
 generateStatement ts (CCompound _ident items _) = mapM_ (generateBlockItem ts) items
 generateStatement ts (CIf expr trueStat maybeElseStat _) = generateIfStatement ts expr trueStat maybeElseStat
 generateStatement ts (CFor (Left (maybeExpr1)) maybeExpr2 maybeExpr3 stat _) = generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat
@@ -33,7 +33,7 @@ zeroReturn = void $ ret $ Just (intConst 0)
 
 generateBlockItem :: TypeTable -> CBlockItem -> Codegen ()
 generateBlockItem ts (CBlockStmt stat) = generateStatement ts stat
-generateBlockItem ts (CBlockDecl decl) = mapM_ declare declarations
+generateBlockItem ts (CBlockDecl decl) = mapM_ (declare ts) declarations
 	where
 		declarations = buildDeclarations decl
 generateBlockItem _ i = trace ("unknown generate block item: " ++ (show i) ) $ undefined
@@ -54,9 +54,9 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 
 	setBlock condBlock
 
-	(cond, _, _) <- case maybeExpr2 of
+	(cond, _) <- case maybeExpr2 of
 		Just expr -> generateExpression ts expr
-		Nothing -> return (intConst64 1, undefined, undefined)
+		Nothing -> return (intConst64 1, undefined)
 
 	cbr cond bodyBlock exitBlock
 
@@ -82,7 +82,7 @@ generateIfStatement ts condition trueStat maybeElseStat = do
 
 	-- %entry
 	------------------
-	(cond, _, _) <- generateExpression ts condition
+	(cond, _) <- generateExpression ts condition
 	cbr cond ifthen ifelse
 
 	-- if.then
