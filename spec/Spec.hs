@@ -4,6 +4,8 @@ import Nanc.Compiler
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
+import Debug.Trace
+
 import Data.Either
 import Data.List
 import System.Directory
@@ -31,6 +33,7 @@ main = hspec $ do
 				it ("Transforms " ++ name) $ do
 					let (Right ast) = parse "global" src
 					let transformed = transformToLLVM ast
+					traceM (show transformed)
 					ir <- generateIR transformed
 					ir `shouldSatisfy` (/= T.empty)
 
