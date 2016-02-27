@@ -19,6 +19,16 @@ main = hspec $ do
 			preprocessed <- preprocess fileName src
 			parse fileName preprocessed `shouldSatisfy` isRight
 
+		describe "Parses execute tests" $ do
+			let runTest (name, src) = do
+				it ("Parses " ++ name) $ do
+					preprocessed <- preprocess name src
+					let parsed = parse name preprocessed
+					parsed `shouldSatisfy` isRight
+
+			tests <- runIO $ testFiles "execute"
+			mapM_ runTest tests
+
 	describe "Nanc.Compiler.transformToLLVM" $ do
 		it "Transforms globals to llvm ast" $ do
 			pendingWith "This doesn't do anything.."
@@ -31,7 +41,8 @@ main = hspec $ do
 		describe "Generates IR for execute tests" $ do
 			let runTest (name, src) = do
 				it ("Transforms " ++ name) $ do
-					let (Right ast) = parse "global" src
+					preprocessed <- preprocess name src
+					let (Right ast) = parse name preprocessed
 					let transformed = transformToLLVM ast
 					traceM (show transformed)
 					ir <- generateIR transformed
@@ -47,7 +58,7 @@ testFiles :: FilePath -> IO [(FilePath, T.Text)]
 testFiles subdir = do
 	let dir = "spec/spec_support/" ++ subdir ++ "/"
 	files <- getDirectoryContents dir
-	let sourceFiles = filter (isInfixOf ".c") files
+	let sourceFiles = [ f | f <- files, isInfixOf ".c" f, not $ isInfixOf ".disabled" f ]
 	let sourceFilesWithPaths = map ((++) dir) sourceFiles
 	sources <- mapM TIO.readFile sourceFilesWithPaths
 	let result = zip sourceFiles sources
