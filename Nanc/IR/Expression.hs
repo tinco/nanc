@@ -142,6 +142,12 @@ expressionValue ts (CUnary CPreDecOp expr _) = do
 	store t addr dec_val
 	return (dec_val, typ)
 
+-- !var;
+expressionValue ts (CUnary CNegOp expr _) = do
+	(val, typ) <- expressionValue ts expr
+	result <- notInstr val
+	return (result, typ)
+
 --  Binary expressions
 expressionValue ts (CBinary op leftExpr rightExpr _) = do
 	(leftVal, typ) <- expressionValue ts leftExpr
@@ -191,6 +197,8 @@ expressionValue ts i@(CIndex subjectExpr expr _) = do
 	value <- load t addr
 	return (value, typ)
 
+
+
 expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 
 lookupMember :: TypeTable -> QualifiedType -> String -> (Int, QualifiedType)
@@ -220,6 +228,8 @@ binaryOp _ CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType
 binaryOp _ CGrOp  a b = liftM2 (,) (cmpOp CGrOp a b) (return defaultBooleanType)
 binaryOp ts CMulOp a b = liftM2 (,) (mul (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
 binaryOp ts CSubOp a b = liftM2 (,) (sub (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CAddOp a b = liftM2 (,) (add (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CDivOp a b = liftM2 (,) (sdiv (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
 binaryOp _ op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
 
 
