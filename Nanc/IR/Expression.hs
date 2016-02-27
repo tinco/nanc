@@ -28,22 +28,22 @@ import qualified LLVM.General.AST.Constant as C
 
 {-}
 ---
-So generateExpression has a horrible signature.
+We have two main functions for expressions: expressionValue and expressionAddress
+
+Given the following C snippet:
 
 var x;
 x += 1;
 print(x);
-->
+
+We execute the following instructions:
 
 declare x
-v <- takeValue 'x'
-a <- takeAddress 'x'
-store
-
-we want two functions
-
-expressionValue :: TypeTable -> CExpr -> Codegen (AST.Operand, QualifiedType)
-expressionAddress :: TypeTable -> CExpr -> Codegen (AST.Operand, QualifiedType)
+v <- expressionValue 'x'
+a <- expressionAddress 'x'
+store a (v + 1)
+v' <- load a
+call 'print' [v']
 
 ---
  -}
@@ -78,23 +78,23 @@ expressionAddress ts (CCast decl expr _) = do
 
 expressionAddressys ts (CIndex subjectExpr expr _) = do
 	(addr, typ) <- expressionAddress ts subjectExpr
-	(index, _) <- generateExpression ts expr
+	(index, _) <- expressionValue ts expr
 	let t = qualifiedTypeToType ts typ
 	delta <- mul (AST.IntegerType 64) (intConst64 $ fromIntegral $ sizeof t) index
 	newAddr <- add (AST.IntegerType 64) addr delta
 	return (newAddr, typ)
 
-generateExpression :: TypeTable -> CExpr -> Codegen ExpressionResult
+expressionValue :: TypeTable -> CExpr -> Codegen ExpressionResult
 
 -- var()
-generateExpression ts (CCall fn' args' _) = do
-	args <- mapM (generateExpression ts) args'
-	(fn,t) <- generateExpression ts fn'
+expressionValue ts (CCall fn' args' _) = do
+	args <- mapM (expressionValue ts) args'
+	(fn,t) <- expressionValue ts fn'
 	result <- call fn (map fst args)
 	return (result, returnType t)
 
 -- var
-generateExpression ts (CVar (Ident name _ _) _) = do
+expressionValue ts (CVar (Ident name _ _) _) = do
 	(address, typ) <- getvar name
 	case typ of
 		QualifiedType (FT _) _ -> return (address, typ)
@@ -104,9 +104,9 @@ generateExpression ts (CVar (Ident name _ _) _) = do
 			return (value, typ)
 
 -- var = bar
-generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
+expressionValue ts (CAssign CAssignOp leftExpr rightExpr _) = do
 	(addr, typ) <- expressionAddress ts leftExpr
-	(val, typ2) <- generateExpression ts rightExpr
+	(val, typ2) <- expressionValue ts rightExpr
 
 	if typ == typ2
 		then do 
@@ -116,14 +116,14 @@ generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2))
 
 -- *var
-generateExpression ts (CUnary CIndOp expr _) = do
+expressionValue ts (CUnary CIndOp expr _) = do
 	traceM ("Dereferencing expression: " ++ (show expr)) 
 	expressionAddress ts expr
 
 -- var++
-generateExpression ts (CUnary CPostIncOp expr _) = do
+expressionValue ts (CUnary CPostIncOp expr _) = do
 	(addr, typ) <- expressionAddress ts expr
-	(val, typ) <- generateExpression ts expr
+	(val, typ) <- expressionValue ts expr
 
 	let t = qualifiedTypeToType ts typ
 	inc_val <- add t val (intConst 1)
@@ -132,9 +132,9 @@ generateExpression ts (CUnary CPostIncOp expr _) = do
 	return (val, typ)
 
 -- --var;
-generateExpression ts (CUnary CPreDecOp expr _) = do
+expressionValue ts (CUnary CPreDecOp expr _) = do
 	(addr, typ) <- expressionAddress ts expr
-	(val, typ) <- generateExpression ts expr
+	(val, typ) <- expressionValue ts expr
 
 	let t = qualifiedTypeToType ts typ
 	dec_val <- add t val (intConst (-1))
@@ -143,14 +143,14 @@ generateExpression ts (CUnary CPreDecOp expr _) = do
 	return (dec_val, typ)
 
 --  Binary expressions
-generateExpression ts (CBinary op leftExpr rightExpr _) = do
-	(leftVal, typ) <- generateExpression ts leftExpr
-	(rightVal, typ2) <- generateExpression ts rightExpr
+expressionValue ts (CBinary op leftExpr rightExpr _) = do
+	(leftVal, typ) <- expressionValue ts leftExpr
+	(rightVal, typ2) <- expressionValue ts rightExpr
 	(result, t) <- binaryOp ts op (leftVal, typ) (rightVal, typ2)
 	return (result, t)
 
 -- CVar (Ident "_p" 14431 n) n
-generateExpression ts m@(CMember subjectExpr (Ident memName _ _) _bool _) = do
+expressionValue ts m@(CMember subjectExpr (Ident memName _ _) _bool _) = do
 	(addr, typ) <- expressionAddress ts m
 	let t = qualifiedTypeToType ts typ
 	value <- load t addr
@@ -158,12 +158,12 @@ generateExpression ts m@(CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 -- (CConst (CCharConst '\n' ()))
 -- (CConst (CIntConst 0 ())) ())
-generateExpression _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, typ)
+expressionValue _ (CConst (CIntConst (CInteger i _ _) _)) = return (result, typ)
 	where
 		result = intConst64 $ fromIntegral i
 		typ = QualifiedType (ST SignedInt) (defaultTypeQualifiers { typeIsConst = True })
 
-generateExpression ts (CConst (CStrConst (CString str _) _)) = do
+expressionValue ts (CConst (CStrConst (CString str _) _)) = do
 		name <- literal (cnst, typ)
 		let t = qualifiedTypeToType ts typ
 		let addr = global (AST.Name name) t
@@ -173,25 +173,25 @@ generateExpression ts (CConst (CStrConst (CString str _) _)) = do
 		cnst = C.Array (AST.IntegerType 8) (map ((C.Int 8).fromIntegral.ord) str)
 		typ = QualifiedType (Arr (fromIntegral $ length str) (QualifiedType (ST Char) constTypeQualifiers)) constTypeQualifiers
 
-generateExpression ts (CConst (CCharConst (CChar chr _) _)) = return (result, typ)
+expressionValue ts (CConst (CCharConst (CChar chr _) _)) = return (result, typ)
 	where
 		result = intConst8 $ fromIntegral $ ord chr
 		typ = QualifiedType (ST Char) (defaultTypeQualifiers { typeIsConst = True })
 		
-generateExpression _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
-generateExpression ts (CCast decl expr _) = do
-		(value, _) <- generateExpression ts expr
+expressionValue _ (CConst c) = trace ("\n\nI don't know how to do CConst: " ++ (show c) ++ "\n\n") undefined
+expressionValue ts (CCast decl expr _) = do
+		(value, _) <- expressionValue ts expr
 		return (value, t)
 	where
 		t = declarationType.buildDeclaration $ decl
 
-generateExpression ts i@(CIndex subjectExpr expr _) = do
+expressionValue ts i@(CIndex subjectExpr expr _) = do
 	(addr, typ) <- expressionAddress ts i
 	let t = qualifiedTypeToType ts typ
 	value <- load t addr
 	return (value, typ)
 
-generateExpression _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
+expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 
 lookupMember :: TypeTable -> QualifiedType -> String -> (Int, QualifiedType)
 lookupMember ts typ memName = (i, resultType)

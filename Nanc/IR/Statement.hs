@@ -19,9 +19,9 @@ import Nanc.IR.Expression
 import Nanc.IR.Instructions
 
 generateStatement :: TypeTable -> CStat -> Codegen ()
-generateStatement ts (CExpr expr _) = void $ generateExpression ts (fromJust expr)
+generateStatement ts (CExpr expr _) = void $ expressionValue ts (fromJust expr)
 generateStatement _ (CReturn Nothing _)= void $ ret Nothing
-generateStatement ts (CReturn (Just expr) _) = void $ generateExpression ts expr >>= ret . Just . fst
+generateStatement ts (CReturn (Just expr) _) = void $ expressionValue ts expr >>= ret . Just . fst
 generateStatement ts (CCompound _ident items _) = mapM_ (generateBlockItem ts) items
 generateStatement ts (CIf expr trueStat maybeElseStat _) = generateIfStatement ts expr trueStat maybeElseStat
 generateStatement ts (CFor (Left (maybeExpr1)) maybeExpr2 maybeExpr3 stat _) = generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat
@@ -44,7 +44,7 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 	-------------
 	case maybeExpr1 of 
 		Just expr -> do 
-			generateExpression ts expr
+			expressionValue ts expr
 			return ()
 		Nothing -> return ()
 
@@ -55,7 +55,7 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 	setBlock condBlock
 
 	(cond, _) <- case maybeExpr2 of
-		Just expr -> generateExpression ts expr
+		Just expr -> expressionValue ts expr
 		Nothing -> return (intConst64 1, undefined)
 
 	cbr cond bodyBlock exitBlock
@@ -65,7 +65,7 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 	generateStatement ts stat
 	case maybeExpr3 of
 		Just expr -> do 
-			generateExpression ts expr
+			expressionValue ts expr
 			return ()
 		Nothing -> return ()
 
@@ -82,7 +82,7 @@ generateIfStatement ts condition trueStat maybeElseStat = do
 
 	-- %entry
 	------------------
-	(cond, _) <- generateExpression ts condition
+	(cond, _) <- expressionValue ts condition
 	cbr cond ifthen ifelse
 
 	-- if.then
