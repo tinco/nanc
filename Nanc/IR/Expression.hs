@@ -65,7 +65,7 @@ expressionAddress ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 	let t = qualifiedTypeToType ts resultType
 	let pt = LT.ptr t
-	let idx = intConst $ fromIntegral i
+	let idx = gepIndex $ fromIntegral i
 
 	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
 	return (resultAddr, resultType)
@@ -111,10 +111,7 @@ generateExpression ts (CAssign CAssignOp leftExpr rightExpr _) = do
 	if typ == typ2
 		then do 
 			let t = qualifiedTypeToType ts typ2
-			let idx = intConst $ fromIntegral 0
-			let pt = LT.ptr t
-			resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
-			store t resultAddr val
+			store t addr val
 			return (val, typ)
 		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2))
 
@@ -131,11 +128,7 @@ generateExpression ts (CUnary CPostIncOp expr _) = do
 	let t = qualifiedTypeToType ts typ
 	inc_val <- add t val (intConst 1)
 
-	let idx = intConst $ fromIntegral 0
-	let pt = LT.ptr t
-	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
-
-	store t resultAddr inc_val
+	store t addr inc_val
 	return (val, typ)
 
 -- --var;
@@ -146,11 +139,7 @@ generateExpression ts (CUnary CPreDecOp expr _) = do
 	let t = qualifiedTypeToType ts typ
 	dec_val <- add t val (intConst (-1))
 
-	let idx = intConst $ fromIntegral 0
-	let pt = LT.ptr t
-	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
-
-	store t resultAddr dec_val
+	store t addr dec_val
 	return (dec_val, typ)
 
 --  Binary expressions
@@ -261,6 +250,9 @@ fOpToPred CEqOp = F.UEQ
 
 intConst :: Integer -> AST.Operand
 intConst = intConst64
+
+gepIndex :: Integer -> AST.Operand
+gepIndex = intConst32
 
 intConst8 :: Integer -> AST.Operand
 intConst8 = AST.ConstantOperand . C.Int 8

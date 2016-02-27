@@ -17,6 +17,7 @@ import qualified LLVM.General.AST.FloatingPointPredicate as F
 
 import Nanc.CodeGenState
 import Nanc.IR.Types
+import Nanc.AST
 
 -- IEEE 754 double
 double :: Type
@@ -94,6 +95,17 @@ store t ptr val = instr t $ Store False ptr val Nothing 0 []
 
 load :: Type -> Operand -> Codegen Operand
 load t ptr = instr t $ Load False ptr Nothing 0 []
+
+declare :: TypeTable -> Declaration -> Codegen ()
+-- TODO we dont do anything yet with declarations
+-- when we get a typechecker we should obviously
+declare ts decl = do
+		addr <- alloca t
+		assign name (addr, typ)
+	where
+		name = declarationName decl
+		typ = declarationType decl
+		t = qualifiedTypeToType ts typ
 
 operandToType :: Operand -> Type
 operandToType (LocalReference t _) = t

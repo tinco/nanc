@@ -20,6 +20,7 @@ import Control.Applicative
 import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
+import qualified LLVM.General.AST.Type as LT
 import qualified LLVM.General.AST.Constant as C
 import qualified LLVM.General.AST.Linkage as L
 
@@ -236,16 +237,6 @@ local n t = LocalReference t n
 
 global :: Name -> Type -> Operand
 global n t = ConstantOperand . C.GlobalReference t $ n
-
-
-declare :: TypeTable -> Declaration -> Codegen ()
--- TODO we dont do anything yet with declarations
--- when we get a typechecker we should obviously
-declare ts decl = assign name (ref, typ)
-	where
-		name = declarationName decl
-		typ = declarationType decl
-		ref = local (Name name) (qualifiedTypeToType ts typ)
 
 assign :: String -> Symbol -> Codegen ()
 assign var x = do
