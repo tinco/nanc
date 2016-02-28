@@ -90,6 +90,8 @@ library
     Nanc.IR.CodeGen
     Nanc.IR.Declarations
     Nanc.IR.Expression
+    Nanc.IR.Expression.Binary
+    Nanc.IR.Expression.Helpers
     Nanc.IR.Instructions
     Nanc.IR.Statement
     Nanc.IR.Types

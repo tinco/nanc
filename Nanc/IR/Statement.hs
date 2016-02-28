@@ -16,6 +16,7 @@ import Nanc.AST.Declarations
 
 import Nanc.IR.Types
 import Nanc.IR.Expression
+import Nanc.IR.Expression.Helpers
 import Nanc.IR.Instructions
 
 generateStatement :: TypeTable -> CStat -> Codegen ()

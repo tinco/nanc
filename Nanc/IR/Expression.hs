@@ -24,6 +24,10 @@ import Nanc.AST.Declarations
 
 import Nanc.IR.Types
 import Nanc.IR.Instructions
+import Nanc.IR.Expression.Binary
+import Nanc.IR.Expression.Helpers
+
+
 import qualified LLVM.General.AST.Constant as C
 
 {-}
@@ -197,88 +201,4 @@ expressionValue ts i@(CIndex subjectExpr expr _) = do
 	value <- load t addr
 	return (value, typ)
 
-
-
 expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
-
-lookupMember :: TypeTable -> QualifiedType -> String -> (Int, QualifiedType)
-lookupMember ts typ memName = (i, resultType)
-	where
-		members = extractMembers ts typ
-		i = head $ elemIndices memName $ map (declarationName) members
-		resultType = declarationType $ members !! i
-
--- Extracts the members from a Struct, TD or Ptr to a Struct
-extractMembers :: TypeTable -> QualifiedType -> [Declaration]
-extractMembers ts (QualifiedType (CT (Struct _ members _)) _) = members
-extractMembers ts (QualifiedType (CT (TD n)) _)  = case lookup n ts of
-	Just t -> extractMembers ts t
-	Nothing -> trace ("Could not find struct type: " ++ (show n)) undefined
--- this doesn't really make sense..
-extractMembers ts (QualifiedType (Ptr s) _) = extractMembers ts s
-extractMembers ts s = trace ("Unexptected struct type: " ++ (show s)) undefined
-
--- choose between icmp and fcmp
-binaryOp :: TypeTable -> CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen (AST.Operand, QualifiedType)
-binaryOp _ CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a) 
-binaryOp _ CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
-binaryOp _ CNeqOp a b = liftM2 (,) (cmpOp CNeqOp a b) (return defaultBooleanType)
-binaryOp _ CEqOp a b = liftM2 (,) (cmpOp CEqOp a b) (return defaultBooleanType)
-binaryOp _ CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType)
-binaryOp _ CGrOp  a b = liftM2 (,) (cmpOp CGrOp a b) (return defaultBooleanType)
-binaryOp ts CMulOp a b = liftM2 (,) (mul (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
-binaryOp ts CSubOp a b = liftM2 (,) (sub (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
-binaryOp ts CAddOp a b = liftM2 (,) (add (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
-binaryOp ts CDivOp a b = liftM2 (,) (sdiv (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
-binaryOp _ op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
-
-
-cmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
-cmpOp cmp a@(a',_) b | isInteger a' = iCmpOp cmp a b
-                     | otherwise = fCmpOp cmp a b
-
-iCmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
-iCmpOp cmp (a,t) (b,_) = icmp (iOpToPred (isSigned t) cmp) a b
-
-fCmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
-fCmpOp cmp (a,t) (b,_) = fcmp (fOpToPred cmp) a b 
-
-data FloatOrInt = Floaty | Intty
-iOpToPred :: Bool -> CBinaryOp -> I.IntegerPredicate
-iOpToPred _ CNeqOp = I.NE
-iOpToPred True CGeqOp = I.SGE
-iOpToPred False CGeqOp = I.UGE
-iOpToPred True CGrOp = I.SGT
-iOpToPred False CGrOp = I.UGT
-iOpToPred _ CEqOp = I.EQ
-
-fOpToPred :: CBinaryOp -> F.FloatingPointPredicate
-fOpToPred CGeqOp = F.UGE
-fOpToPred CNeqOp = F.UNE
-fOpToPred CGrOp = F.UGT
-fOpToPred CEqOp = F.UEQ
-
-intConst :: Integer -> AST.Operand
-intConst = intConst64
-
-gepIndex :: Integer -> AST.Operand
-gepIndex = intConst32
-
-intConst8 :: Integer -> AST.Operand
-intConst8 = AST.ConstantOperand . C.Int 8
-
-intConst32 :: Integer -> AST.Operand
-intConst32 = AST.ConstantOperand . C.Int 32
-
-intConst64 :: Integer -> AST.Operand
-intConst64 = AST.ConstantOperand . C.Int 64
-
-isInteger :: AST.Operand -> Bool
-isInteger (AST.LocalReference (AST.IntegerType _) _) = True
-isInteger (AST.ConstantOperand (C.Int _ _)) = True
-isInteger _ = False
-
-isFloat :: AST.Operand -> Bool
-isFloat (AST.LocalReference (AST.FloatingPointType _ _) _) = True
-isFloat (AST.ConstantOperand (C.Float _)) = True
-isFloat _ = False

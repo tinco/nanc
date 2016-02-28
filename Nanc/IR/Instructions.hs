@@ -57,6 +57,9 @@ mul t a b = instr t $ Mul False False a b []
 sdiv :: Type -> Operand -> Operand -> Codegen Operand
 sdiv t a b = instr t $ SDiv True a b []
 
+srem :: Type -> Operand -> Operand -> Codegen Operand
+srem t a b = instr t $ SRem a b []
+
 icmp :: I.IntegerPredicate -> Operand -> Operand -> Codegen Operand
 icmp p a b = instr booleanType $ ICmp p a b []
 
