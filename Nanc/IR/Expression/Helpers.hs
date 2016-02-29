@@ -28,8 +28,6 @@ extractMembers ts (QualifiedType (CT (TD n)) _)  = case lookup n ts of
 extractMembers ts (QualifiedType (Ptr s) _) = extractMembers ts s
 extractMembers ts s = trace ("Unexptected struct type: " ++ (show s)) undefined
 
-
-
 intConst :: Integer -> AST.Operand
 intConst = intConst64
 

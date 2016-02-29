@@ -27,7 +27,6 @@ import Nanc.IR.Instructions
 import Nanc.IR.Expression.Binary
 import Nanc.IR.Expression.Helpers
 
-
 import qualified LLVM.General.AST.Constant as C
 
 {-}

@@ -31,6 +31,12 @@ binaryOp ts CSubOp a b = liftM2 (,) (sub (qualifiedTypeToType ts (snd a)) (fst a
 binaryOp ts CAddOp a b = liftM2 (,) (add (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
 binaryOp ts CDivOp a b = liftM2 (,) (sdiv (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
 binaryOp ts CRmdOp a b = liftM2 (,) (srem (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CShlOp a b = liftM2 (,) (shl (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CShrOp a b = liftM2 (,) (shr (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts COrOp a b = liftM2 (,) (lor (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CAndOp a b = liftM2 (,) (land (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+binaryOp ts CXorOp a b = liftM2 (,) (xor (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
+
 
 binaryOp _ op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
 

@@ -54,11 +54,26 @@ sub t a b = instr t $ Sub False False a b []
 mul :: Type -> Operand -> Operand -> Codegen Operand
 mul t a b = instr t $ Mul False False a b []
 
+lor :: Type -> Operand -> Operand -> Codegen Operand
+lor t a b = instr t $ Or a b []
+
+land :: Type -> Operand -> Operand -> Codegen Operand
+land t a b = instr t $ And a b []
+
+xor :: Type -> Operand -> Operand -> Codegen Operand
+xor t a b = instr t $ Xor a b []
+
 sdiv :: Type -> Operand -> Operand -> Codegen Operand
 sdiv t a b = instr t $ SDiv True a b []
 
 srem :: Type -> Operand -> Operand -> Codegen Operand
 srem t a b = instr t $ SRem a b []
+
+shl :: Type -> Operand -> Operand -> Codegen Operand
+shl t a b = instr t $ Shl False False a b []
+
+shr :: Type -> Operand -> Operand -> Codegen Operand
+shr t a b = instr t $ LShr False a b []
 
 icmp :: I.IntegerPredicate -> Operand -> Operand -> Codegen Operand
 icmp p a b = instr booleanType $ ICmp p a b []
