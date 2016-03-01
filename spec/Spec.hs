@@ -59,7 +59,7 @@ testFiles :: FilePath -> IO [(FilePath, T.Text)]
 testFiles subdir = do
 	let dir = "spec/spec_support/" ++ subdir ++ "/"
 	files <- getDirectoryContents dir
-	let sourceFiles = [ f | f <- files, isInfixOf ".c" f, not $ isInfixOf ".disabled" f ]
+	let sourceFiles = sort $ [ f | f <- files, isInfixOf ".c" f, not $ isInfixOf ".disabled" f ]
 	let sourceFilesWithPaths = map ((++) dir) sourceFiles
 	sources <- mapM TIO.readFile sourceFilesWithPaths
 	let result = zip sourceFiles sources
