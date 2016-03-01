@@ -70,6 +70,15 @@ isStructType :: QualifiedType -> Bool
 isStructType (QualifiedType (CT (Struct _ _ _)) _) = True
 isStructType _ = False
 
+isFloatType :: QualifiedType -> Bool
+isFloatType (QualifiedType (ST t) _) = isFloatType' t
+	where
+		isFloatType' Float = True
+		isFloatType' Double = True
+		isFloatType' LongDouble = True
+		isFloatType' _ = False
+isFloatType _ = False
+
 isSigned :: QualifiedType -> Bool
 isSigned (QualifiedType (ST c) _) = isSigned' c
 	where

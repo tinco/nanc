@@ -17,6 +17,7 @@ import qualified LLVM.General.AST.FloatingPointPredicate as F
 
 import Nanc.CodeGenState
 import Nanc.IR.Types
+import Nanc.IR.Expression.Helpers
 import Nanc.AST
 
 -- IEEE 754 double
@@ -35,6 +36,7 @@ instr t ins = do
 binInstr op a b = instr (IntegerType 1) $ op (fst a) (fst b) []
 
 notInstr a = instr (IntegerType 1) $ Xor a (ConstantOperand $ C.Int 1 1) []
+compInstr a = instr (IntegerType 1) $ Xor a wordMax []
 
 terminator :: Named Terminator -> Codegen (Named Terminator)
 terminator trm = do

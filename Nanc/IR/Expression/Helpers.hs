@@ -3,6 +3,7 @@ module Nanc.IR.Expression.Helpers where
 import Debug.Trace
 
 import Data.List
+import Data.Word
 
 import Nanc.AST
 import Nanc.CodeGenState
@@ -10,6 +11,7 @@ import Nanc.AST.Declarations
 
 import qualified LLVM.General.AST as AST
 import qualified LLVM.General.AST.Constant as C
+import qualified LLVM.General.AST.Float as LF
 
 lookupMember :: TypeTable -> QualifiedType -> String -> (Int, QualifiedType)
 lookupMember ts typ memName = (i, resultType)
@@ -42,6 +44,12 @@ intConst32 = AST.ConstantOperand . C.Int 32
 
 intConst64 :: Integer -> AST.Operand
 intConst64 = AST.ConstantOperand . C.Int 64
+
+floatConst :: Double -> AST.Operand
+floatConst = AST.ConstantOperand . C.Float . LF.Double
+
+wordMax :: AST.Operand
+wordMax = intConst64 $ fromIntegral (maxBound :: Word64) 
 
 isInteger :: AST.Operand -> Bool
 isInteger (AST.LocalReference (AST.IntegerType _) _) = True

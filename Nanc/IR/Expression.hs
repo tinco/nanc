@@ -151,6 +151,22 @@ expressionValue ts (CUnary CNegOp expr _) = do
 	result <- notInstr val
 	return (result, typ)
 
+-- ~x; (bitwise NOT)
+expressionValue ts (CUnary CCompOp expr _) = do
+	(val, typ) <- expressionValue ts expr
+	result <- compInstr val
+	return (result, typ)
+
+-- -x;
+expressionValue ts (CUnary CMinOp expr _) = do
+	(val, typ) <- expressionValue ts expr
+	let t = qualifiedTypeToType ts typ
+	result <- if isFloatType typ
+		then fsub (floatConst 0.0) val
+		else sub t (intConst 0) val
+
+	return (result, typ)
+
 --  Binary expressions
 expressionValue ts (CBinary op leftExpr rightExpr _) = do
 	(leftVal, typ) <- expressionValue ts leftExpr
