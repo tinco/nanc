@@ -102,7 +102,11 @@ generateIfStatement ts condition trueStat maybeElseStat = do
 			br ifexit
 			ifelse <- getBlock
 			return ()
-		Nothing -> return ()
+		Nothing -> do
+			setBlock ifelse
+			br ifexit
+			ifelse <- getBlock
+			return ()
 
 	-- if.exit
 	------------------

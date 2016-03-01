@@ -24,6 +24,8 @@ binaryOp _ CLorOp a b = liftM2 (,) (binInstr AST.Or a b) (return $ snd a)
 binaryOp _ CLndOp a b = liftM2 (,) (binInstr AST.And a b) (return $ snd a)
 binaryOp _ CNeqOp a b = liftM2 (,) (cmpOp CNeqOp a b) (return defaultBooleanType)
 binaryOp _ CEqOp a b = liftM2 (,) (cmpOp CEqOp a b) (return defaultBooleanType)
+binaryOp _ CLeOp a b = liftM2 (,) (cmpOp CLeOp a b) (return defaultBooleanType)
+binaryOp _ CLeqOp a b = liftM2 (,) (cmpOp CLeqOp a b) (return defaultBooleanType)
 binaryOp _ CGeqOp a b = liftM2 (,) (cmpOp CGeqOp a b) (return defaultBooleanType)
 binaryOp _ CGrOp  a b = liftM2 (,) (cmpOp CGrOp a b) (return defaultBooleanType)
 binaryOp ts CMulOp a b = liftM2 (,) (mul (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
@@ -37,8 +39,7 @@ binaryOp ts COrOp a b = liftM2 (,) (lor (qualifiedTypeToType ts (snd a)) (fst a)
 binaryOp ts CAndOp a b = liftM2 (,) (land (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
 binaryOp ts CXorOp a b = liftM2 (,) (xor (qualifiedTypeToType ts (snd a)) (fst a) (fst b)) (return $ snd a)
 
-
-binaryOp _ op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
+-- binaryOp _ op _ _ = trace ("Don't know how to binaryOp: " ++ (show op)) undefined
 
 cmpOp :: CBinaryOp -> (AST.Operand, QualifiedType) -> (AST.Operand, QualifiedType) -> Codegen AST.Operand
 cmpOp cmp a@(a',_) b | isInteger a' = iCmpOp cmp a b
@@ -57,6 +58,10 @@ iOpToPred True CGeqOp = I.SGE
 iOpToPred False CGeqOp = I.UGE
 iOpToPred True CGrOp = I.SGT
 iOpToPred False CGrOp = I.UGT
+iOpToPred True CLeOp = I.SLT
+iOpToPred False CLeOp = I.ULT
+iOpToPred True CLeqOp = I.SLE
+iOpToPred False CLeqOp = I.ULE
 iOpToPred _ CEqOp = I.EQ
 
 fOpToPred :: CBinaryOp -> F.FloatingPointPredicate
@@ -64,3 +69,5 @@ fOpToPred CGeqOp = F.UGE
 fOpToPred CNeqOp = F.UNE
 fOpToPred CGrOp = F.UGT
 fOpToPred CEqOp = F.UEQ
+fOpToPred CLeOp = F.ULT
+fOpToPred CLeqOp = F.ULE
