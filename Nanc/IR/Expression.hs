@@ -118,6 +118,27 @@ expressionValue ts (CAssign CAssignOp leftExpr rightExpr _) = do
 			return (val, typ)
 		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2))
 
+-- var *= bar
+expressionValue ts (CAssign assignOp leftExpr rightExpr _) = do
+	(addr, typ) <- expressionAddress ts leftExpr
+	(oldVal, typ) <- expressionValue ts leftExpr
+	(modifier, typ2) <- expressionValue ts rightExpr
+
+	if typ == typ2
+		then do
+			let t = qualifiedTypeToType ts typ2
+			val <- doOp assignOp t oldVal modifier
+			store t addr val
+			return (val, typ)
+		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2))
+	where
+		doOp CMulAssOp = mul
+		doOp CAddAssOp = add
+		doOp CSubAssOp = sub
+		doOp COrAssOp = lor
+		doOp CAndAssOp = land
+		doOp op = trace ("Unkown assignment operation: " ++ show op) undefined
+
 -- *var
 expressionValue ts (CUnary CIndOp expr _) = do
 	traceM ("Dereferencing expression: " ++ (show expr)) 
