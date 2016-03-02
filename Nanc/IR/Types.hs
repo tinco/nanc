@@ -39,6 +39,7 @@ simpleTypeToType Char _ = IntegerType 8
 simpleTypeToType UnsignedLongInt _ = IntegerType 64
 simpleTypeToType UnsignedInt _ = IntegerType 64
 simpleTypeToType UnsignedShortInt _ = IntegerType 16
+simpleTypeToType Bool _ = IntegerType 1
 simpleTypeToType t qs = trace ("Unimplemented simple type: " ++ (show t)) undefined
 
 {- Hint about implementing unions:

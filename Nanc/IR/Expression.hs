@@ -148,13 +148,15 @@ expressionValue ts (CUnary CPreDecOp expr _) = do
 -- !var;
 expressionValue ts (CUnary CNegOp expr _) = do
 	(val, typ) <- expressionValue ts expr
-	result <- notInstr val
+	let t = qualifiedTypeToType ts typ
+	result <- notInstr t val
 	return (result, typ)
 
 -- ~x; (bitwise NOT)
 expressionValue ts (CUnary CCompOp expr _) = do
 	(val, typ) <- expressionValue ts expr
-	result <- compInstr val
+	let t = qualifiedTypeToType ts typ
+	result <- compInstr t val
 	return (result, typ)
 
 -- -x;
