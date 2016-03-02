@@ -36,7 +36,7 @@ instr t ins = do
 binInstr op a b = instr (IntegerType 1) $ op (fst a) (fst b) []
 
 notInstr a = instr (IntegerType 1) $ Xor a (ConstantOperand $ C.Int 1 1) []
-compInstr a = instr (IntegerType 1) $ Xor a wordMax []
+compInstr a = instr (IntegerType 64) $ Xor a wordMax []
 
 terminator :: Named Terminator -> Codegen (Named Terminator)
 terminator trm = do

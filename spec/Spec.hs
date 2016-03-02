@@ -5,6 +5,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
 import Debug.Trace
+import Text.Show.Pretty
 
 import Data.Either
 import Data.List
@@ -45,7 +46,7 @@ main = hspec $ do
 					let (Right ast) = parse name preprocessed
 					let transformed = transformToLLVM ast
 					-- Uncomment for inspection of LLVM AST
-					-- traceM (show transformed)
+					traceM (ppShow transformed)
 					ir <- generateIR transformed
 					ir `shouldSatisfy` (/= T.empty)
 
