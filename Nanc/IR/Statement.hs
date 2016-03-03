@@ -55,9 +55,9 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 
 	setBlock condBlock
 
-	(cond, _) <- case maybeExpr2 of
-		Just expr -> expressionValue ts expr
-		Nothing -> return (intConst64 1, undefined)
+	cond <- case maybeExpr2 of
+		Just expr -> boolOrCast ts expr
+		Nothing -> return $ boolConst 1
 
 	cbr cond bodyBlock exitBlock
 
@@ -83,7 +83,7 @@ generateIfStatement ts condition trueStat maybeElseStat = do
 
 	-- %entry
 	------------------
-	(cond, _) <- expressionValue ts condition
+	cond <- boolOrCast ts condition
 	cbr cond ifthen ifelse
 
 	-- if.then

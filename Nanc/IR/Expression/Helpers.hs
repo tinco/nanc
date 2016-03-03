@@ -33,6 +33,9 @@ extractMembers ts s = trace ("Unexptected struct type: " ++ (show s)) undefined
 intConst :: Integer -> AST.Operand
 intConst = intConst64
 
+boolConst :: Integer -> AST.Operand
+boolConst = AST.ConstantOperand . C.Int 1
+
 gepIndex :: Integer -> AST.Operand
 gepIndex = intConst32
 

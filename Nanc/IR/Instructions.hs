@@ -50,6 +50,11 @@ terminator trm = do
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
 toArgs = map (\x -> (x, []))
 
+trunc :: Operand -> Integer -> Codegen Operand
+trunc o i = instr t $ Trunc o t []
+	where
+		t = IntegerType (fromIntegral i)
+
 add :: Type -> Operand -> Operand -> Codegen Operand
 add t a b = instr t $ Add False False a b []
 

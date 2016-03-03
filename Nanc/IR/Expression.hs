@@ -240,3 +240,11 @@ expressionValue ts i@(CIndex subjectExpr expr _) = do
 	return (value, typ)
 
 expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
+
+boolOrCast :: TypeTable -> CExpr -> Codegen AST.Operand
+boolOrCast ts expr = do
+		(val,typ) <- expressionValue ts expr
+		let t = qualifiedTypeToType ts typ
+		case t of
+			AST.IntegerType 1 -> return val
+			AST.IntegerType _n -> trunc val 1
