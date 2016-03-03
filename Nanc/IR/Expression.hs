@@ -247,4 +247,4 @@ boolOrCast ts expr = do
 		let t = qualifiedTypeToType ts typ
 		case t of
 			AST.IntegerType 1 -> return val
-			AST.IntegerType _n -> trunc val 1
+			AST.IntegerType n -> icmp I.NE (AST.ConstantOperand . C.Int n $ 0) val
