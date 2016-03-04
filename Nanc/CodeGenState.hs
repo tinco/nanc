@@ -203,6 +203,10 @@ setBlock bname = do
 getBlock :: Codegen Name
 getBlock = gets currentBlock
 
+-- TODO actually check whether the block exists
+findBlock :: String -> Codegen Name
+findBlock = return . Name
+
 -- Pushes loop entry and exit block names unto the current loop stack
 -- these blocks are used for the 'break' and 'continue' statements
 -- should be called when a loop is entered (i.e. 'for' and 'while')

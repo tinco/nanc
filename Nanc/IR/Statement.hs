@@ -31,10 +31,30 @@ generateStatement ts (CFor (Left (maybeExpr1)) maybeExpr2 maybeExpr3 stat _) = g
 generateStatement ts (CWhile maybeExpr stat isDoWhile _) = generateWhileStatement ts maybeExpr isDoWhile stat
 generateStatement ts (CCont _) = void $ generateContinue
 generateStatement ts (CBreak _) = void $ generateBreak
+generateStatement ts (CLabel (Ident n _ _) stat [] _) = generateLabel ts n stat
+generateStatement ts (CGoto (Ident n _ _) _) = void $ generateGoto ts n
 generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
+
+-- Make labels have their own namespace
+labelName :: String -> String
+labelName n = n ++ ":label:"
 
 zeroReturn :: Codegen ()
 zeroReturn = void $ ret $ Just (intConst 0)
+
+generateLabel :: TypeTable -> String -> CStat -> Codegen ()
+generateLabel ts name statement = do
+	-- TODO throw error if label already exists
+	labelBlock <- addBlock $ labelName name
+	br labelBlock
+
+	setBlock labelBlock
+	generateStatement ts statement
+
+generateGoto :: TypeTable -> String -> Codegen (AST.Named AST.Terminator)
+generateGoto ts name = do
+	labelBlock <- findBlock $ labelName name
+	br labelBlock
 
 generateBlockItem :: TypeTable -> CBlockItem -> Codegen ()
 generateBlockItem ts (CBlockStmt stat) = generateStatement ts stat
