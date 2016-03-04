@@ -44,7 +44,9 @@ compInstr t a = instr t $ Xor a wordMax []
 terminator :: Named Terminator -> Codegen (Named Terminator)
 terminator trm = do
 	blk <- current
-	modifyBlock $ blk { term = Just trm }
+	case term blk of
+		Nothing -> modifyBlock $ blk { term = Just trm }
+		Just term -> error ("Defining second terminator for block: " ++ (show blk))
 	return trm
 
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
