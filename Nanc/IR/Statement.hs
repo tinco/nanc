@@ -20,7 +20,8 @@ import Nanc.IR.Expression.Helpers
 import Nanc.IR.Instructions
 
 generateStatement :: TypeTable -> CStat -> Codegen ()
-generateStatement ts (CExpr expr _) = void $ expressionValue ts (fromJust expr)
+generateStatement ts (CExpr (Just expr) _) = void $ expressionValue ts expr
+generateStatement ts (CExpr Nothing _) = return ()
 generateStatement _ (CReturn Nothing _)= void $ ret Nothing
 generateStatement ts (CReturn (Just expr) _) = void $ expressionValue ts expr >>= ret . Just . fst
 generateStatement ts (CCompound _ident items _) = mapM_ (generateBlockItem ts) items
