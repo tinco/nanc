@@ -29,6 +29,8 @@ generateStatement ts (CIf expr trueStat maybeElseStat _) = generateIfStatement t
 generateStatement ts (CFor (Left (maybeExpr1)) maybeExpr2 maybeExpr3 stat _) = generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat
 --generateStatement ts (CFor (Right decl) (Maybe (CExpression a)) (Maybe (CExpression a)) (CStatement a) a
 generateStatement ts (CWhile maybeExpr stat isDoWhile _) = generateWhileStatement ts maybeExpr isDoWhile stat
+generateStatement ts (CCont _) = void $ generateContinue
+generateStatement ts (CBreak _) = void $ generateBreak
 generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
 
 zeroReturn :: Codegen ()
@@ -40,6 +42,16 @@ generateBlockItem ts (CBlockDecl decl) = mapM_ (declare ts) declarations
 	where
 		declarations = buildDeclarations decl
 generateBlockItem _ i = trace ("unknown generate block item: " ++ (show i) ) $ undefined
+
+generateContinue :: Codegen (AST.Named AST.Terminator)
+generateContinue = do
+	entry <- currentLoopEntry
+	br entry
+
+generateBreak :: Codegen (AST.Named AST.Terminator)
+generateBreak = do
+	exit <- currentLoopExit
+	br exit
 
 generateForStatement :: TypeTable -> Maybe CExpr -> Maybe CExpr -> Maybe CExpr -> CStat -> Codegen ()
 generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
@@ -54,6 +66,8 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 	condBlock <- addBlock "for.cond"
 	bodyBlock <- addBlock "for.body"
 	exitBlock <- addBlock "for.exit"
+
+	pushLoop condBlock exitBlock
 
 	br condBlock
 
@@ -83,7 +97,7 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 	----
 	------------------
 	setBlock exitBlock
-	return()
+	popLoop
 
 generateWhileStatement :: TypeTable -> CExpr -> Bool -> CStat -> Codegen ()
 generateWhileStatement ts expr isDoWhile stat = do
@@ -97,8 +111,12 @@ generateWhileStatement ts expr isDoWhile stat = do
 	---- If it's a do-while we skip over condition the first run
 	-----------------
 	if isDoWhile
-		then br bodyBlock
-		else br condBlock
+		then do
+			pushLoop bodyBlock exitBlock
+			br bodyBlock
+		else do
+			pushLoop condBlock exitBlock
+			br condBlock
 
 	---- Condition
 	----------------
@@ -115,7 +133,7 @@ generateWhileStatement ts expr isDoWhile stat = do
 	---- Exit
 	-----------------
 	setBlock exitBlock
-	return ()
+	popLoop
 
 generateIfStatement :: TypeTable -> CExpr -> CStat -> Maybe CStat -> Codegen ()
 generateIfStatement ts condition trueStat maybeElseStat = do

@@ -34,6 +34,8 @@ type GlobalDeclaration = (String, QualifiedType, Definition)
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
 	blocks       :: Map.Map Name BlockState, -- Blocks for function
+	loopEntryStack :: [Name],                -- Entries of loops that are currently nested (for continue)
+	loopExitStack :: [Name],                 -- Exits of loops that are currently nested (for break)
 	symboltables :: [SymbolTable],           -- Function scope symbol table
 	blockCount   :: Int,                     -- Count of basic blocks
 	count        :: Word,                    -- Count of unnamed instructions
@@ -97,6 +99,8 @@ emptyCodegen :: Int -> CodegenState
 emptyCodegen litsCount = CodegenState {
 	currentBlock = (Name entryBlockName),
 	blocks = Map.empty,
+	loopEntryStack = [],
+	loopExitStack = [],
 	symboltables = [],
 	blockCount = 1,
 	count = 0,
@@ -198,6 +202,41 @@ setBlock bname = do
 
 getBlock :: Codegen Name
 getBlock = gets currentBlock
+
+-- Pushes loop entry and exit block names unto the current loop stack
+-- these blocks are used for the 'break' and 'continue' statements
+-- should be called when a loop is entered (i.e. 'for' and 'while')
+-- Entry should be the name of the block 'continue' would jump to
+-- Exit should be the name of the block 'break' would jump to
+pushLoop :: Name -> Name -> Codegen ()
+pushLoop entry exit = do
+	modify $ \s -> s {
+		loopEntryStack = entry : (loopEntryStack s),
+		loopExitStack = exit : (loopExitStack s)
+	}
+
+-- Pops loop entry and exit blocks. Should be called when a loop
+-- is exited.
+popLoop :: Codegen ()
+popLoop = do
+	modify $ \s -> s {
+		loopEntryStack = tail $ loopEntryStack s,
+		loopExitStack = tail $ loopEntryStack s
+	}
+
+-- Gets the entrypoint of the current loop, should be used as the target
+-- for the 'continue' statement.
+currentLoopEntry :: Codegen Name
+currentLoopEntry = do 
+	stack <- gets loopEntryStack
+	return $ head stack
+
+-- Gets the exit block of the current loop, should be used as the target
+-- for the 'break' statement.
+currentLoopExit :: Codegen Name
+currentLoopExit = do 
+	stack <- gets loopExitStack
+	return $ head stack
 
 modifyBlock :: BlockState -> Codegen ()
 modifyBlock new = do
