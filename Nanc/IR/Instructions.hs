@@ -43,10 +43,11 @@ compInstr t a = instr t $ Xor a wordMax []
 
 terminator :: Named Terminator -> Codegen (Named Terminator)
 terminator trm = do
+	name <- getBlock
 	blk <- current
 	case term blk of
 		Nothing -> modifyBlock $ blk { term = Just trm }
-		Just term -> error ("Defining second terminator for block: " ++ (show blk))
+		Just term -> error ("Defining second terminator for block named '" ++ (show name) ++ "': " ++ (show blk))
 	return trm
 
 toArgs :: [Operand] -> [(Operand, [A.ParameterAttribute])]
@@ -105,14 +106,31 @@ fmul a b = instr double $ FMul NoFastMathFlags a b []
 fdiv :: Operand -> Operand -> Codegen Operand
 fdiv a b = instr double $ FDiv NoFastMathFlags a b []
 
-br :: Name -> Codegen (Named Terminator)
-br val = terminator $ Do $ Br val []
+br :: Name -> Codegen ()
+br val = do
+	currentBlockName <- getBlock
+	bs <- current
+	if hasTerminator bs
+		then traceM ("Unreachable code in block: " ++ (show currentBlockName))
+		else void $ terminator $ Do $ Br val []
+
+brIfNoTerm :: Name -> Codegen ()
+brIfNoTerm n = do
+	bs <- current
+	if hasTerminator bs
+		then return ()
+		else void $ br n
 
 cbr :: Operand -> Name -> Name -> Codegen (Named Terminator)
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
 
-ret :: Maybe Operand -> Codegen (Named Terminator)
-ret val = terminator $ Do $ Ret val []
+ret :: Maybe Operand -> Codegen ()
+ret val = do
+	currentBlockName <- getBlock
+	bs <- current
+	if hasTerminator bs
+		then traceM ("Unreachable return in block: " ++ (show currentBlockName))
+		else void $ terminator $ Do $ Ret val []
 
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr double $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []

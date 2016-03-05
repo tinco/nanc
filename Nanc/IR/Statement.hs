@@ -51,7 +51,7 @@ generateLabel ts name statement = do
 	setBlock labelBlock
 	generateStatement ts statement
 
-generateGoto :: TypeTable -> String -> Codegen (AST.Named AST.Terminator)
+generateGoto :: TypeTable -> String -> Codegen ()
 generateGoto ts name = do
 	labelBlock <- findBlock $ labelName name
 	br labelBlock
@@ -63,12 +63,12 @@ generateBlockItem ts (CBlockDecl decl) = mapM_ (declare ts) declarations
 		declarations = buildDeclarations decl
 generateBlockItem _ i = trace ("unknown generate block item: " ++ (show i) ) $ undefined
 
-generateContinue :: Codegen (AST.Named AST.Terminator)
+generateContinue :: Codegen ()
 generateContinue = do
 	entry <- currentLoopEntry
 	br entry
 
-generateBreak :: Codegen (AST.Named AST.Terminator)
+generateBreak :: Codegen ()
 generateBreak = do
 	exit <- currentLoopExit
 	br exit
@@ -111,7 +111,8 @@ generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
 			return ()
 		Nothing -> return ()
 
-	br condBlock
+	brIfNoTerm condBlock
+
 	bodyBlock <- getBlock
 
 	----
@@ -148,7 +149,7 @@ generateWhileStatement ts expr isDoWhile stat = do
 	-----------------
 	setBlock bodyBlock
 	generateStatement ts stat
-	br condBlock
+	brIfNoTerm condBlock
 
 	---- Exit
 	-----------------
@@ -170,7 +171,7 @@ generateIfStatement ts condition trueStat maybeElseStat = do
 	------------------
 	setBlock ifthen
 	generateStatement ts trueStat
-	br ifexit
+	brIfNoTerm ifexit
 	ifthen <- getBlock
 
 	-- if.else
@@ -179,12 +180,12 @@ generateIfStatement ts condition trueStat maybeElseStat = do
 		Just elseState -> do
 			setBlock ifelse
 			generateStatement ts elseState
-			br ifexit
+			brIfNoTerm ifexit
 			ifelse <- getBlock
 			return ()
 		Nothing -> do
 			setBlock ifelse
-			br ifexit
+			brIfNoTerm ifexit
 			ifelse <- getBlock
 			return ()
 

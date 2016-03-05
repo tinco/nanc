@@ -11,6 +11,7 @@ import Nanc.AST hiding (returnType)
 import Data.Word
 import Data.List
 import Data.Function
+import Data.Maybe
 
 import qualified Data.Map as Map
 
@@ -250,10 +251,17 @@ modifyBlock new = do
 current :: Codegen BlockState
 current = do
 	c <- gets currentBlock
-	blks <- gets blocks
-	case Map.lookup c blks of
-		Just x -> return x
-		Nothing -> error $ "No such block: " ++ show c
+	lookupBlockState c
+
+lookupBlockState :: Name -> Codegen BlockState
+lookupBlockState name = do
+	blocks <- gets blocks
+	case Map.lookup name blocks of
+		Just bs -> return bs
+		Nothing -> error $ "Could not find block named: " ++ show name
+
+hasTerminator :: BlockState -> Bool
+hasTerminator bs = isJust $ term bs
 
 type Names = Map.Map String Int
 
