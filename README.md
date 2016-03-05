@@ -21,7 +21,8 @@ Some ideas I hope Nancy C will have:
   - No header files
   - Some sort of hygienic macro to replace preprocessor
   - Pointer asterisk on the type side
-  - No dangling if body
+  - No dangling if/while/for body
+  - Explicit switch fall-through with `continue`
   - Optional semicolons on ends of statements
 
 Languages to take lessons from:
