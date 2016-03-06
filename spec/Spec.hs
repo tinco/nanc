@@ -4,8 +4,10 @@ import Nanc.Compiler
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
--- import Debug.Trace
--- import Text.Show.Pretty
+import Debug.Trace
+import Text.Show.Pretty
+import Text.PrettyPrint
+import Language.C.Pretty
 
 import Data.Either
 import Data.List
@@ -46,7 +48,7 @@ main = hspec $ do
 					let (Right ast) = parse name preprocessed
 					let transformed = transformToLLVM ast
 					-- Uncomment for inspection of LLVM AST
-					-- traceM (ppShow transformed)
+					traceM (render $ pretty ast)
 					ir <- generateIR transformed
 					ir `shouldSatisfy` (/= T.empty)
 

@@ -121,3 +121,5 @@ test-suite spec
     , directory
     , mtl
     , pretty-show
+    , pretty
+    , language-c

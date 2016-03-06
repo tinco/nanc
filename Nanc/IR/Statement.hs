@@ -2,8 +2,10 @@ module Nanc.IR.Statement where
 
 import Debug.Trace
 import Data.Maybe
+import Data.List
 
 import Control.Monad
+import Control.Monad.State
 
 import Language.C
 import Language.C.Data.Ident
@@ -16,6 +18,7 @@ import Nanc.AST.Declarations
 
 import Nanc.IR.Types
 import Nanc.IR.Expression
+import Nanc.IR.Expression.Binary
 import Nanc.IR.Expression.Helpers
 import Nanc.IR.Instructions
 
@@ -33,6 +36,7 @@ generateStatement ts (CCont _) = void $ generateContinue
 generateStatement ts (CBreak _) = void $ generateBreak
 generateStatement ts (CLabel (Ident n _ _) stat [] _) = generateLabel ts n stat
 generateStatement ts (CGoto (Ident n _ _) _) = void $ generateGoto ts n
+generateStatement ts (CSwitch expr (CCompound [] caseStmnts _ ) _) = generateSwitch ts expr caseStmnts
 generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
 
 -- Make labels have their own namespace
@@ -72,6 +76,80 @@ generateBreak :: Codegen ()
 generateBreak = do
 	exit <- currentLoopExit
 	br exit
+
+generateSwitch :: TypeTable -> CExpr -> [CBlockItem] -> Codegen ()
+generateSwitch ts expr switchStmnts = do
+	switchEntry <- getBlock
+	switchValue <- expressionValue ts expr
+
+	switchExit <- addBlock "switch.exit"
+	switchContinue <- addBlock "switch.continue"
+	switchDefault <- addBlock "switch.default"
+
+	pushLoop switchContinue switchExit
+
+	defaultCase <- case defaults of
+		[] -> return (switchExit, switchExit)
+		[stat] -> do
+			setBlock switchDefault
+			generateStatement ts stat
+			brIfNoTerm switchExit
+			return (switchDefault, switchDefault)
+
+	let
+		makeCase :: (AST.Name, AST.Name) -> (CExpr, CStat) -> Codegen (AST.Name, AST.Name)
+		makeCase (nextEntry, nextBody) (const, stat) = do
+			entryBlock <- addBlock "switch.entry.case"
+			bodyBlock <- addBlock "switch.body.case"
+
+			setBlock entryBlock
+			constValue <- expressionValue ts const
+			(op, _) <- binaryOp ts CEqOp switchValue constValue
+			cbr op bodyBlock nextEntry
+
+			setBlock bodyBlock
+			generateStatement ts stat
+			brIfNoTerm nextBody
+
+			return (entryBlock, bodyBlock)
+
+	(firstCaseEntry, _) <- foldM makeCase defaultCase (reverse cases)
+
+	---- Enter into switch
+	setBlock switchEntry
+	mapM_ (generateBlockItem ts) otherStatements
+	br firstCaseEntry
+
+	---- A continue inside a switch actually refers to
+	---- any enclosing loop.
+	-----------------------
+	setBlock switchContinue
+	popLoop
+	loopStack <- gets loopEntryStack
+	if loopStack == []
+		then error "Not allowed to continue outside loop"
+		else generateContinue
+
+	---- Switch exit
+	-----------------
+	setBlock switchExit
+	popLoop
+	return ()
+
+	where
+		cases = map extractCase $ (filter isCase switchStmnts) ++ (filter isLabeledCase switchStmnts)
+		extractCase (CBlockStmt (CCase const stat _)) = (const, stat)
+		-- Rewrite labeled cases
+		extractCase (CBlockStmt (CLabel i (CCase const caseStat _) [] n)) = (const, (CLabel i caseStat [] n))
+		isCase (CBlockStmt (CCase _ _ _)) = True
+		isCase _ = False
+		isLabeledCase (CBlockStmt (CLabel _ (CCase _ _ _) _ _)) = True
+		isLabeledCase _ = False
+		defaults = map extractDefault $ filter isDefault switchStmnts
+		isDefault (CBlockStmt (CDefault _ _)) = True
+		isDefault _ = False
+		extractDefault (CBlockStmt (CDefault stat _)) = stat
+		otherStatements = [ stat | stat <- switchStmnts, not $ isCase stat, not $ isDefault stat, not $ isLabeledCase stat]
 
 generateForStatement :: TypeTable -> Maybe CExpr -> Maybe CExpr -> Maybe CExpr -> CStat -> Codegen ()
 generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
