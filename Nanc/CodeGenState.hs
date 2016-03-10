@@ -32,11 +32,17 @@ type SymbolTable = [(String, Symbol)]
 type TypeTable = [(String, QualifiedType)]
 type GlobalDeclaration = (String, QualifiedType, Definition)
 
+data SwitchContext = data SwitchContext {
+	cases :: [(CExpr, Name, Name)],
+	defaultCase :: Name
+}
+
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
 	blocks       :: Map.Map Name BlockState, -- Blocks for function
 	loopEntryStack :: [Name],                -- Entries of loops that are currently nested (for continue)
 	loopExitStack :: [Name],                 -- Exits of loops that are currently nested (for break)
+	switchStack :: [SwitchContext],          -- Context of switches that we are currently nested in
 	symboltables :: [SymbolTable],           -- Function scope symbol table
 	blockCount   :: Int,                     -- Count of basic blocks
 	count        :: Word,                    -- Count of unnamed instructions

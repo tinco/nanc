@@ -36,7 +36,9 @@ generateStatement ts (CCont _) = void $ generateContinue
 generateStatement ts (CBreak _) = void $ generateBreak
 generateStatement ts (CLabel (Ident n _ _) stat [] _) = generateLabel ts n stat
 generateStatement ts (CGoto (Ident n _ _) _) = void $ generateGoto ts n
-generateStatement ts (CSwitch expr (CCompound [] caseStmnts _ ) _) = generateSwitch ts expr caseStmnts
+generateStatement ts (CSwitch expr stat _) = generateSwitch ts expr stat
+generateStatement ts (CCase const stat _) = generateCase ts const stat
+generateStatement ts (CDefault stat _) = generateDefault ts stat
 generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
 
 -- Make labels have their own namespace
@@ -96,6 +98,11 @@ generateSwitch ts expr switchStmnts = do
 			brIfNoTerm switchExit
 			return (switchDefault, switchDefault)
 
+	-- set up switch context
+
+	generateStatement ts stat
+
+	-- now switch context should have all entries for cases
 	let
 		makeCase :: (AST.Name, AST.Name) -> (CExpr, CStat) -> Codegen (AST.Name, AST.Name)
 		makeCase (nextEntry, nextBody) (const, stat) = do
@@ -113,11 +120,9 @@ generateSwitch ts expr switchStmnts = do
 
 			return (entryBlock, bodyBlock)
 
-	(firstCaseEntry, _) <- foldM makeCase defaultCase (reverse cases)
+	-- 	(firstCaseEntry, _) <- foldM makeCase defaultCase (reverse cases)
 
 	---- Enter into switch
-	setBlock switchEntry
-	mapM_ (generateBlockItem ts) otherStatements
 	br firstCaseEntry
 
 	---- A continue inside a switch actually refers to
@@ -133,23 +138,13 @@ generateSwitch ts expr switchStmnts = do
 	---- Switch exit
 	-----------------
 	setBlock switchExit
-	popLoop
-	return ()
+	void popLoop
 
-	where
-		cases = map extractCase $ (filter isCase switchStmnts) ++ (filter isLabeledCase switchStmnts)
-		extractCase (CBlockStmt (CCase const stat _)) = (const, stat)
-		-- Rewrite labeled cases
-		extractCase (CBlockStmt (CLabel i (CCase const caseStat _) [] n)) = (const, (CLabel i caseStat [] n))
-		isCase (CBlockStmt (CCase _ _ _)) = True
-		isCase _ = False
-		isLabeledCase (CBlockStmt (CLabel _ (CCase _ _ _) _ _)) = True
-		isLabeledCase _ = False
-		defaults = map extractDefault $ filter isDefault switchStmnts
-		isDefault (CBlockStmt (CDefault _ _)) = True
-		isDefault _ = False
-		extractDefault (CBlockStmt (CDefault stat _)) = stat
-		otherStatements = [ stat | stat <- switchStmnts, not $ isCase stat, not $ isDefault stat, not $ isLabeledCase stat]
+generateCase :: TypeTable -> CExpr -> CStat -> Codegen ()
+generateCase ts const stat = undefined
+
+generateDefault :: TypeTable -> CStat -> Codegen ()
+generateDefault ts stat = undefined
 
 generateForStatement :: TypeTable -> Maybe CExpr -> Maybe CExpr -> Maybe CExpr -> CStat -> Codegen ()
 generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
