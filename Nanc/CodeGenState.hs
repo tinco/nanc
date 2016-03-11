@@ -18,6 +18,8 @@ import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Applicative
 
+import qualified Language.C as LC
+
 import LLVM.General.AST hiding (Module)
 import LLVM.General.AST.Global
 import qualified LLVM.General.AST as AST
@@ -32,10 +34,10 @@ type SymbolTable = [(String, Symbol)]
 type TypeTable = [(String, QualifiedType)]
 type GlobalDeclaration = (String, QualifiedType, Definition)
 
-data SwitchContext = data SwitchContext {
-	cases :: [(CExpr, Name, Name)],
+data SwitchContext = SwitchContext {
+	cases :: [(LC.CExpr, Name, Name)],
 	defaultCase :: Name
-}
+} deriving Show
 
 data CodegenState = CodegenState {
 	currentBlock :: Name,                    -- Name of the active block to append to
@@ -104,6 +106,7 @@ builtinTypeDefinitions = [
 
 emptyCodegen :: Int -> CodegenState
 emptyCodegen litsCount = CodegenState {
+	switchStack = [],
 	currentBlock = (Name entryBlockName),
 	blocks = Map.empty,
 	loopEntryStack = [],

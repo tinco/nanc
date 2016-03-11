@@ -36,7 +36,7 @@ generateStatement ts (CCont _) = void $ generateContinue
 generateStatement ts (CBreak _) = void $ generateBreak
 generateStatement ts (CLabel (Ident n _ _) stat [] _) = generateLabel ts n stat
 generateStatement ts (CGoto (Ident n _ _) _) = void $ generateGoto ts n
-generateStatement ts (CSwitch expr stat _) = generateSwitch ts expr stat
+generateStatement ts (CSwitch expr blk _) = generateSwitch ts expr blk
 generateStatement ts (CCase const stat _) = generateCase ts const stat
 generateStatement ts (CDefault stat _) = generateDefault ts stat
 generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
@@ -80,7 +80,7 @@ generateBreak = do
 	br exit
 
 generateSwitch :: TypeTable -> CExpr -> [CBlockItem] -> Codegen ()
-generateSwitch ts expr switchStmnts = do
+generateSwitch ts expr stat = do
 	switchEntry <- getBlock
 	switchValue <- expressionValue ts expr
 
@@ -90,13 +90,13 @@ generateSwitch ts expr switchStmnts = do
 
 	pushLoop switchContinue switchExit
 
-	defaultCase <- case defaults of
-		[] -> return (switchExit, switchExit)
-		[stat] -> do
-			setBlock switchDefault
-			generateStatement ts stat
-			brIfNoTerm switchExit
-			return (switchDefault, switchDefault)
+	--defaultCase <- case defaults of
+	--	[] -> return (switchExit, switchExit)
+	--	[stat] -> do
+	--		setBlock switchDefault
+	--		generateStatement ts stat
+	--		brIfNoTerm switchExit
+	--		return (switchDefault, switchDefault)
 
 	-- set up switch context
 
@@ -121,6 +121,7 @@ generateSwitch ts expr switchStmnts = do
 			return (entryBlock, bodyBlock)
 
 	-- 	(firstCaseEntry, _) <- foldM makeCase defaultCase (reverse cases)
+	let firstCaseEntry = undefined
 
 	---- Enter into switch
 	br firstCaseEntry
