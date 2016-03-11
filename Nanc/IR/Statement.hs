@@ -36,7 +36,7 @@ generateStatement ts (CCont _) = void $ generateContinue
 generateStatement ts (CBreak _) = void $ generateBreak
 generateStatement ts (CLabel (Ident n _ _) stat [] _) = generateLabel ts n stat
 generateStatement ts (CGoto (Ident n _ _) _) = void $ generateGoto ts n
-generateStatement ts (CSwitch expr blk _) = generateSwitch ts expr blk
+generateStatement ts (CSwitch expr stat _) = generateSwitch ts expr stat
 generateStatement ts (CCase const stat _) = generateCase ts const stat
 generateStatement ts (CDefault stat _) = generateDefault ts stat
 generateStatement _ _d = trace ("Unknown generateStatement: " ++ show _d) $ undefined
@@ -79,7 +79,7 @@ generateBreak = do
 	exit <- currentLoopExit
 	br exit
 
-generateSwitch :: TypeTable -> CExpr -> [CBlockItem] -> Codegen ()
+generateSwitch :: TypeTable -> CExpr -> CStat -> Codegen ()
 generateSwitch ts expr stat = do
 	switchEntry <- getBlock
 	switchValue <- expressionValue ts expr
