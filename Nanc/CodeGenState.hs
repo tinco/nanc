@@ -35,7 +35,7 @@ type TypeTable = [(String, QualifiedType)]
 type GlobalDeclaration = (String, QualifiedType, Definition)
 
 data SwitchContext = SwitchContext {
-	cases :: [(LC.CExpr, Name, Name)],
+	cases :: [(LC.CExpr, Name)],
 	defaultCase :: Name
 } deriving Show
 
@@ -223,7 +223,7 @@ findBlock = return . Name
 -- Entry should be the name of the block 'continue' would jump to
 -- Exit should be the name of the block 'break' would jump to
 pushLoop :: Name -> Name -> Codegen ()
-pushLoop entry exit = do
+pushLoop entry exit =
 	modify $ \s -> s {
 		loopEntryStack = entry : (loopEntryStack s),
 		loopExitStack = exit : (loopExitStack s)
@@ -232,11 +232,39 @@ pushLoop entry exit = do
 -- Pops loop entry and exit blocks. Should be called when a loop
 -- is exited.
 popLoop :: Codegen ()
-popLoop = do
+popLoop =
 	modify $ \s -> s {
 		loopEntryStack = tail $ loopEntryStack s,
 		loopExitStack = tail $ loopEntryStack s
 	}
+
+pushSwitch :: SwitchContext -> Codegen ()
+pushSwitch ctx =
+	modify $ \s -> s {
+		switchStack = ctx : (switchStack s)
+	}
+
+popSwitch :: Codegen SwitchContext
+popSwitch = do
+	stack <- gets switchStack
+	modify $ \s -> s {
+		switchStack = tail $ switchStack s
+	}
+	return $ head stack
+
+addSwitchCase :: LC.CExpr -> Name -> Codegen ()
+addSwitchCase c n =	do
+	stack <- gets switchStack
+	let cases' = (c,n) : (cases $ head stack)
+	let headStack' = (head stack) { cases = cases' }
+	modify $ \s -> s {
+		switchStack = headStack' : (tail stack)
+	}
+
+getSwitchDefault :: Codegen Name
+getSwitchDefault = do
+	stack <- gets switchStack
+	return $ defaultCase $ head stack
 
 -- Gets the entrypoint of the current loop, should be used as the target
 -- for the 'continue' statement.

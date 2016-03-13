@@ -89,39 +89,31 @@ generateSwitch ts expr stat = do
 	switchDefault <- addBlock "switch.default"
 
 	pushLoop switchContinue switchExit
-
-	--defaultCase <- case defaults of
-	--	[] -> return (switchExit, switchExit)
-	--	[stat] -> do
-	--		setBlock switchDefault
-	--		generateStatement ts stat
-	--		brIfNoTerm switchExit
-	--		return (switchDefault, switchDefault)
-
-	-- set up switch context
+	pushSwitch $ SwitchContext [] switchDefault
 
 	generateStatement ts stat
 
+	setBlock switchDefault
+	brIfNoTerm switchExit
+
 	-- now switch context should have all entries for cases
 	let
-		makeCase :: (AST.Name, AST.Name) -> (CExpr, CStat) -> Codegen (AST.Name, AST.Name)
-		makeCase (nextEntry, nextBody) (const, stat) = do
+		makeCase :: (AST.Name, AST.Name) -> (CExpr, AST.Name) -> Codegen (AST.Name, AST.Name)
+		makeCase (nextEntry, nextBody) (const, body) = do
 			entryBlock <- addBlock "switch.entry.case"
-			bodyBlock <- addBlock "switch.body.case"
-
 			setBlock entryBlock
 			constValue <- expressionValue ts const
 			(op, _) <- binaryOp ts CEqOp switchValue constValue
-			cbr op bodyBlock nextEntry
+			cbr op body nextEntry
 
-			setBlock bodyBlock
-			generateStatement ts stat
+			setBlock body
 			brIfNoTerm nextBody
 
-			return (entryBlock, bodyBlock)
+			return (entryBlock, body)
 
-	-- 	(firstCaseEntry, _) <- foldM makeCase defaultCase (reverse cases)
-	let firstCaseEntry = undefined
+	context <- popSwitch
+
+	(firstCaseEntry, _) <- foldM makeCase (switchDefault, switchDefault) $ reverse $ cases context
 
 	---- Enter into switch
 	br firstCaseEntry
@@ -142,10 +134,23 @@ generateSwitch ts expr stat = do
 	void popLoop
 
 generateCase :: TypeTable -> CExpr -> CStat -> Codegen ()
-generateCase ts const stat = undefined
+generateCase ts const stat = do
+	body <- addBlock "switch.body.case"
+	addSwitchCase const body
+
+	brIfNoTerm body
+
+	setBlock body
+	generateStatement ts stat
 
 generateDefault :: TypeTable -> CStat -> Codegen ()
-generateDefault ts stat = undefined
+generateDefault ts stat = do
+	body <- getSwitchDefault
+
+	brIfNoTerm body
+
+	setBlock body
+	generateStatement ts stat
 
 generateForStatement :: TypeTable -> Maybe CExpr -> Maybe CExpr -> Maybe CExpr -> CStat -> Codegen ()
 generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
