@@ -48,7 +48,8 @@ main = hspec $ do
 					let (Right ast) = parse name preprocessed
 					let transformed = transformToLLVM ast
 					-- Uncomment for inspection of LLVM AST
-					traceM (render $ pretty ast)
+					-- traceM (render $ pretty ast)
+					traceM $ ppShow transformed
 					ir <- generateIR transformed
 					ir `shouldSatisfy` (/= T.empty)
 

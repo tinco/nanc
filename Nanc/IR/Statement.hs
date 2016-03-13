@@ -85,16 +85,17 @@ generateSwitch ts expr stat = do
 	switchValue <- expressionValue ts expr
 
 	switchExit <- addBlock "switch.exit"
-	switchContinue <- addBlock "switch.continue"
 	switchDefault <- addBlock "switch.default"
+
+	---- A continue inside a switch actually refers to
+	---- any enclosing loop. Hopefully this works
+	-----------------------
+	switchContinue <- currentLoopEntry
 
 	pushLoop switchContinue switchExit
 	pushSwitch $ SwitchContext [] switchDefault
 
 	generateStatement ts stat
-
-	setBlock switchDefault
-	brIfNoTerm switchExit
 
 	-- now switch context should have all entries for cases
 	let
@@ -116,17 +117,12 @@ generateSwitch ts expr stat = do
 	(firstCaseEntry, _) <- foldM makeCase (switchDefault, switchDefault) $ reverse $ cases context
 
 	---- Enter into switch
+	setBlock switchEntry
 	br firstCaseEntry
 
-	---- A continue inside a switch actually refers to
-	---- any enclosing loop.
-	-----------------------
-	setBlock switchContinue
-	popLoop
-	loopStack <- gets loopEntryStack
-	if loopStack == []
-		then error "Not allowed to continue outside loop"
-		else generateContinue
+	-- After default we break to exit of switch
+	setBlock switchDefault
+	brIfNoTerm switchExit
 
 	---- Switch exit
 	-----------------

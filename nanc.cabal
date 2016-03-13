@@ -78,7 +78,7 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.8, language-c >= 0.4.7, llvm-general >= 3.4.5.4, llvm-general-pure >= 3.4.5.4,
                        containers, mtl >=2.2.1, transformers >=0.4.1.0, temporary >= 1.2, text, bytestring,
-                       filepath, process
+                       filepath, process, pretty-show
 
   exposed-modules:
     Nanc.Compiler

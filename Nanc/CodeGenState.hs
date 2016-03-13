@@ -5,6 +5,7 @@ module Nanc.CodeGenState where
 
 import Debug.Trace
 import GHC.Stack
+import Text.Show.Pretty (ppShow)
 
 import Nanc.AST hiding (returnType)
 
@@ -12,6 +13,7 @@ import Data.Word
 import Data.List
 import Data.Function
 import Data.Maybe
+import Data.Either
 
 import qualified Data.Map as Map
 
@@ -194,13 +196,17 @@ addBlock bname = do
 	return (Name qname)
 
 createBlocks :: CodegenState -> [BasicBlock]
-createBlocks m = map makeBlock $ sortBlocks $ Map.toList (blocks m)
-
-makeBlock :: (Name, BlockState) -> BasicBlock
-makeBlock b@(l, (BlockState _ s t)) = BasicBlock l s (maketerm t)
+createBlocks m = if hasInvalidBlock
+	then error $ "Has block without terminator: " ++ (ppShow maybeBlocks)
+	else lefts maybeBlocks
 	where
-		maketerm (Just x) = x
-		maketerm Nothing = error $ "\n\nBlock has no terminator: " ++ (show b)
+		hasInvalidBlock = any isRight maybeBlocks
+		maybeBlocks = map makeBlock $ sortBlocks $ Map.toList (blocks m)
+
+makeBlock :: (Name, BlockState) -> Either BasicBlock String
+makeBlock b@(l, (BlockState _ s t)) = case t of
+	Just term -> Left $ BasicBlock l s term
+	Nothing -> Right $ "No terminator for block: " ++ (ppShow b)
 
 sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
 sortBlocks = sortBy (compare `on` (idx . snd))
