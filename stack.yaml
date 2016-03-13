@@ -5,3 +5,6 @@ extra-deps:
   - llvm-general-3.5.1.2
   - llvm-general-pure-3.5.1.0
 resolver: lts-5.4
+nix:
+  enable: true
+  packages: [llvm_35]
