@@ -87,6 +87,9 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 	newAddr <- add (AST.IntegerType 64) addr delta
 	return (newAddr, typ)
 
+expressionAddress _ts expr = trace ("IR ExpressionAddress unknown node: " ++ (show expr)) undefined
+
+
 expressionValue :: TypeTable -> CExpr -> Codegen ExpressionResult
 
 -- var()
