@@ -37,7 +37,7 @@ type TypeTable = [(String, QualifiedType)]
 type GlobalDeclaration = (String, QualifiedType, Definition)
 
 data SwitchContext = SwitchContext {
-	cases :: [(LC.CExpr, Name)],
+	cases :: [(LC.CExpr, Name {- entry -}, Name {- exit -})],
 	defaultCase :: Name
 } deriving Show
 
@@ -258,10 +258,10 @@ popSwitch = do
 	}
 	return $ head stack
 
-addSwitchCase :: LC.CExpr -> Name -> Codegen ()
-addSwitchCase c n =	do
+addSwitchCase :: LC.CExpr -> Name -> Name -> Codegen ()
+addSwitchCase c n e = do
 	stack <- gets switchStack
-	let cases' = (c,n) : (cases $ head stack)
+	let cases' = (c,n,e) : (cases $ head stack)
 	let headStack' = (head stack) { cases = cases' }
 	modify $ \s -> s {
 		switchStack = headStack' : (tail stack)

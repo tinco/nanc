@@ -81,9 +81,7 @@ generateBreak = do
 
 generateSwitch :: TypeTable -> CExpr -> CStat -> Codegen ()
 generateSwitch ts expr stat = do
-	switchEntry <- getBlock
-	switchValue <- expressionValue ts expr
-
+	switchEntry <- addBlock "switch.entry"
 	switchExit <- addBlock "switch.exit"
 	switchDefault <- addBlock "switch.default"
 
@@ -95,19 +93,25 @@ generateSwitch ts expr stat = do
 	pushLoop switchContinue switchExit
 	pushSwitch $ SwitchContext [] switchDefault
 
+	-- The switch statement contains a bunch of statements
+	-- most of them case statements. After they are all defined
+	-- we jump to the switchEntry
 	generateStatement ts stat
+	brIfNoTerm switchEntry
+
+	switchValue <- expressionValue ts expr
 
 	-- now switch context should have all entries for cases
 	let
-		makeCase :: (AST.Name, AST.Name) -> (CExpr, AST.Name) -> Codegen (AST.Name, AST.Name)
-		makeCase (nextEntry, nextBody) (const, body) = do
+		makeCase :: (AST.Name, AST.Name) -> (CExpr, AST.Name, AST.Name) -> Codegen (AST.Name, AST.Name)
+		makeCase (nextEntry, nextBody) (const, body, exit) = do
 			entryBlock <- addBlock "switch.entry.case"
 			setBlock entryBlock
 			constValue <- expressionValue ts const
 			(op, _) <- binaryOp ts CEqOp switchValue constValue
 			cbr op body nextEntry
 
-			setBlock body
+			setBlock exit
 			brIfNoTerm nextBody
 
 			return (entryBlock, body)
@@ -131,22 +135,38 @@ generateSwitch ts expr stat = do
 
 generateCase :: TypeTable -> CExpr -> CStat -> Codegen ()
 generateCase ts const stat = do
+	-- Store the current block since we're going to emit a
+	-- new block that will not actually be linked to from the
+	-- current block.
+	prevBlock <- getBlock
+
 	body <- addBlock "switch.body.case"
-	addSwitchCase const body
-
-	brIfNoTerm body
-
 	setBlock body
 	generateStatement ts stat
+
+	exitBlock <- getBlock
+
+	addSwitchCase const body exitBlock
+
+	-- The terminator of the switch.body.case is set in
+	-- the generateSwitchStatement function, not here.
+
+	void $ setBlock prevBlock
 
 generateDefault :: TypeTable -> CStat -> Codegen ()
 generateDefault ts stat = do
+	-- Store the current block since we're going to emit a
+	-- new block that will not actually be linked to from the
+	-- current block.
+	prevBlock <- getBlock
 	body <- getSwitchDefault
-
-	brIfNoTerm body
 
 	setBlock body
 	generateStatement ts stat
+	-- The terminator of the switchDefault is set in
+	-- the generateSwitchStatement function, not here.
+
+	void $ setBlock prevBlock
 
 generateForStatement :: TypeTable -> Maybe CExpr -> Maybe CExpr -> Maybe CExpr -> CStat -> Codegen ()
 generateForStatement ts maybeExpr1 maybeExpr2 maybeExpr3 stat = do
