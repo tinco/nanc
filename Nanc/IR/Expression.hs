@@ -79,7 +79,7 @@ expressionAddress ts (CCast decl expr _) = do
 	where
 		t = declarationType.buildDeclaration $ decl
 
-expressionAddressys ts (CIndex subjectExpr expr _) = do
+expressionAddress ts (CIndex subjectExpr expr _) = do
 	(addr, typ) <- expressionAddress ts subjectExpr
 	(index, _) <- expressionValue ts expr
 	let t = qualifiedTypeToType ts typ
