@@ -94,11 +94,12 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 -- *var loads the value of var, and returns that (assuming
 -- it is an address)
 expressionAddress ts (CUnary CIndOp expr _) = do
-	(addr, typ) <- expressionValue ts expr
-	return (addr, pointeeType typ)
+	(addr, typ) <- expressionAddress ts expr
+	let t = qualifiedTypeToType ts typ
+	value <- load t addr
+	return (value, pointeeType typ)
 
 expressionAddress _ts expr = trace ("IR ExpressionAddress unknown node: " ++ (show expr)) undefined
-
 
 expressionValue :: TypeTable -> CExpr -> Codegen ExpressionResult
 
@@ -123,10 +124,6 @@ expressionValue ts (CVar (Ident name _ _) _) = do
 expressionValue ts (CAssign CAssignOp leftExpr rightExpr nodeInfo) = do
 	(addr, typ) <- expressionAddress ts leftExpr
 	(val, typ2) <- expressionValue ts rightExpr
-
-	if not $ isPointerType typ
-		then error $ "leftExpr is not an address in assignment: " ++ (show nodeInfo)
-		else return ()
 
 	if typ == typ2
 		then do
