@@ -53,24 +53,28 @@ call 'print' [v']
 
 type ExpressionResult = ( AST.Operand, QualifiedType )
 
+
+{-
+expressionAddress returns the address value and the type of the
+*contents* of the address.
+-}
 expressionAddress :: TypeTable -> CExpr -> Codegen ExpressionResult
 
 -- var
 expressionAddress ts (CVar (Ident name _ _) _) = do
-	(address, typ) <- getvar name
-	let t = qualifiedTypeToType ts typ
-	return (address, typ)
+	(address, resultType) <- getvar name
+	return (address, resultType)
 
 -- CVar (Ident "_p" 14431 n) n
 expressionAddress ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	(addr, typ) <- expressionAddress ts subjectExpr
 	let (i, resultType) = lookupMember ts typ memName
+	let resultType' = QualifiedType (Ptr resultType') defaultTypeQualifiers
 
-	let t = qualifiedTypeToType ts resultType
-	let pt = LT.ptr t
+	let t = qualifiedTypeToType ts resultType'
 	let idx = gepIndex $ fromIntegral i
 
-	resultAddr <- instr pt (AST.GetElementPtr True addr [idx] [])
+	resultAddr <- instr t (AST.GetElementPtr True addr [idx] [])
 	return (resultAddr, resultType)
 
 expressionAddress ts (CCast decl expr _) = do
@@ -87,7 +91,9 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 	newAddr <- add (AST.IntegerType 64) addr delta
 	return (newAddr, typ)
 
-expressionAddress ts (CUnary CIndOp expr _) = expressionValue ts expr
+expressionAddress ts (CUnary CIndOp expr _) = do
+	(addr, typ) <- expressionValue ts expr
+	return (addr, pointeeType typ)
 
 expressionAddress _ts expr = trace ("IR ExpressionAddress unknown node: " ++ (show expr)) undefined
 
@@ -112,16 +118,16 @@ expressionValue ts (CVar (Ident name _ _) _) = do
 			return (value, typ)
 
 -- var = bar
-expressionValue ts (CAssign CAssignOp leftExpr rightExpr _) = do
+expressionValue ts (CAssign CAssignOp leftExpr rightExpr nodeInfo) = do
 	(addr, typ) <- expressionAddress ts leftExpr
 	(val, typ2) <- expressionValue ts rightExpr
 
 	if typ == typ2
-		then do 
+		then do
 			let t = qualifiedTypeToType ts typ2
 			store t addr val
 			return (val, typ)
-		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2))
+		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2) ++ "NodeInfo: " ++ (show nodeInfo))
 
 -- var *= bar
 expressionValue ts (CAssign assignOp leftExpr rightExpr _) = do
@@ -244,7 +250,10 @@ expressionValue ts i@(CIndex subjectExpr expr _) = do
 	value <- load t addr
 	return (value, typ)
 
-expressionValue ts (CUnary CAdrOp expr _) = expressionAddress ts expr
+expressionValue ts (CUnary CAdrOp expr _) = do
+	(addr, typ') <- expressionAddress ts expr
+	let typ = QualifiedType (Ptr typ') defaultTypeQualifiers
+	return (addr, typ)
 
 expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 

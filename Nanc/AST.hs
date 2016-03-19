@@ -58,6 +58,10 @@ isTypeAlias _ = False
 returnType :: QualifiedType -> QualifiedType
 returnType (QualifiedType (FT (FunctionType t _)) _) = t
 
+pointeeType :: QualifiedType -> QualifiedType
+pointeeType (QualifiedType (Ptr t) _) = t
+pointeeType pt = trace ("Dereferencing non-pointer: " ++ show pt) undefined
+
 isNoTypeSpec :: QualifiedType -> Bool
 isNoTypeSpec (QualifiedType NoTypeSpec _) = True
 isNoTypeSpec _ = False
