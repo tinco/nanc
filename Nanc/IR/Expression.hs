@@ -87,6 +87,8 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 	newAddr <- add (AST.IntegerType 64) addr delta
 	return (newAddr, typ)
 
+expressionAddress ts (CUnary CIndOp expr _) = expressionValue ts expr
+
 expressionAddress _ts expr = trace ("IR ExpressionAddress unknown node: " ++ (show expr)) undefined
 
 
@@ -241,6 +243,8 @@ expressionValue ts i@(CIndex subjectExpr expr _) = do
 	let t = qualifiedTypeToType ts typ
 	value <- load t addr
 	return (value, typ)
+
+expressionValue ts (CUnary CAdrOp expr _) = expressionAddress ts expr
 
 expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 
