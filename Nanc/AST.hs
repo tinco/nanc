@@ -62,6 +62,10 @@ pointeeType :: QualifiedType -> QualifiedType
 pointeeType (QualifiedType (Ptr t) _) = t
 pointeeType pt = trace ("Dereferencing non-pointer: " ++ show pt) undefined
 
+isPointerType :: QualifiedType -> Bool
+isPointerType (QualifiedType (Ptr _) _) = True
+isPointerType _ = False
+
 isNoTypeSpec :: QualifiedType -> Bool
 isNoTypeSpec (QualifiedType NoTypeSpec _) = True
 isNoTypeSpec _ = False

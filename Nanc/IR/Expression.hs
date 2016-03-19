@@ -91,6 +91,8 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 	newAddr <- add (AST.IntegerType 64) addr delta
 	return (newAddr, typ)
 
+-- *var loads the value of var, and returns that (assuming
+-- it is an address)
 expressionAddress ts (CUnary CIndOp expr _) = do
 	(addr, typ) <- expressionValue ts expr
 	return (addr, pointeeType typ)
@@ -122,6 +124,10 @@ expressionValue ts (CAssign CAssignOp leftExpr rightExpr nodeInfo) = do
 	(addr, typ) <- expressionAddress ts leftExpr
 	(val, typ2) <- expressionValue ts rightExpr
 
+	if not $ isPointerType typ
+		then error $ "leftExpr is not an address in assignment: " ++ (show nodeInfo)
+		else return ()
+
 	if typ == typ2
 		then do
 			let t = qualifiedTypeToType ts typ2
@@ -149,11 +155,6 @@ expressionValue ts (CAssign assignOp leftExpr rightExpr _) = do
 		doOp COrAssOp = lor
 		doOp CAndAssOp = land
 		doOp op = trace ("Unkown assignment operation: " ++ show op) undefined
-
--- *var
-expressionValue ts (CUnary CIndOp expr _) = do
-	traceM ("Dereferencing expression: " ++ (show expr)) 
-	expressionAddress ts expr
 
 -- var++
 expressionValue ts (CUnary CPostIncOp expr _) = do
@@ -243,17 +244,28 @@ expressionValue ts (CCast decl expr _) = do
 		return (value, t)
 	where
 		t = declarationType.buildDeclaration $ decl
-
+-- var[e]
 expressionValue ts i@(CIndex subjectExpr expr _) = do
 	(addr, typ) <- expressionAddress ts i
 	let t = qualifiedTypeToType ts typ
 	value <- load t addr
 	return (value, typ)
 
+-- &var
 expressionValue ts (CUnary CAdrOp expr _) = do
 	(addr, typ') <- expressionAddress ts expr
 	let typ = QualifiedType (Ptr typ') defaultTypeQualifiers
 	return (addr, typ)
+
+-- *var
+-- *var on a *int loads the value of var, and uses that
+-- to load ta value of type int
+expressionValue ts (CUnary CIndOp expr _) = do
+	(addr, typ') <- expressionAddress ts expr
+	let typ = pointeeType typ'
+	let t = qualifiedTypeToType ts typ
+	value <- load t addr
+	return (value, typ)
 
 expressionValue _ expr = trace ("IR Expression unknown node: " ++ (show expr)) undefined
 
