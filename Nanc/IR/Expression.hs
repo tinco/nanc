@@ -65,16 +65,17 @@ expressionAddress ts (CVar (Ident name _ _) _) = do
 	(address, resultType) <- getvar name
 	return (address, resultType)
 
--- CVar (Ident "_p" 14431 n) n
+-- var.field
 expressionAddress ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 	(addr, typ) <- expressionAddress ts subjectExpr
 	let (i, resultType) = lookupMember ts typ memName
-	let resultType' = QualifiedType (Ptr resultType') defaultTypeQualifiers
+	let resultType' = QualifiedType (Ptr resultType) defaultTypeQualifiers
 
 	let t = qualifiedTypeToType ts resultType'
 	let idx = gepIndex $ fromIntegral i
 
 	resultAddr <- instr t (AST.GetElementPtr True addr [idx] [])
+
 	return (resultAddr, resultType)
 
 expressionAddress ts (CCast decl expr _) = do
@@ -124,6 +125,9 @@ expressionValue ts (CVar (Ident name _ _) _) = do
 expressionValue ts (CAssign CAssignOp leftExpr rightExpr nodeInfo) = do
 	(addr, typ) <- expressionAddress ts leftExpr
 	(val, typ2) <- expressionValue ts rightExpr
+
+	traceM $ "Addr: " ++ (show addr)
+	traceM $ "Val: " ++ (show val)
 
 	if typ == typ2
 		then do

@@ -28,7 +28,10 @@ extractMembers ts (QualifiedType (CT (TD n)) _)  = case lookup n ts of
 	Nothing -> trace ("Could not find struct type: " ++ (show n)) undefined
 -- this doesn't really make sense..
 extractMembers ts (QualifiedType (Ptr s) _) = extractMembers ts s
-extractMembers ts s = trace ("Unexptected struct type: " ++ (show s)) undefined
+extractMembers ts (QualifiedType (TypeAlias n) _) = case lookup n ts of
+	Just t -> extractMembers ts t
+	Nothing -> trace ("Could not find struct type: " ++ (show n)) undefined
+extractMembers ts s = trace ("Unexpected struct type: " ++ (show s)) undefined
 
 intConst :: Integer -> AST.Operand
 intConst = intConst64
