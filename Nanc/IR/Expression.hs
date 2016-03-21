@@ -73,8 +73,9 @@ expressionAddress ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
 
 	let t = qualifiedTypeToType ts resultType'
 	let idx = gepIndex $ fromIntegral i
+	let start = intConst64 0
 
-	resultAddr <- instr t (AST.GetElementPtr True addr [idx] [])
+	resultAddr <- instr t (AST.GetElementPtr True addr [start, idx] [])
 
 	return (resultAddr, resultType)
 
@@ -126,8 +127,8 @@ expressionValue ts (CAssign CAssignOp leftExpr rightExpr nodeInfo) = do
 	(addr, typ) <- expressionAddress ts leftExpr
 	(val, typ2) <- expressionValue ts rightExpr
 
-	traceM $ "Addr: " ++ (show addr)
-	traceM $ "Val: " ++ (show val)
+	-- traceM $ "Ptr: " ++ (show addr)
+	-- traceM $ "Val: " ++ (show val)
 
 	if typ == typ2
 		then do
