@@ -72,23 +72,30 @@ generateTypedef declaration = do
 
 resolveTypeDefinitions :: Module ()
 resolveTypeDefinitions = do
-	typeDefs <- gets typeDefinitions
+	typeDefs' <- gets typeDefinitions
+	let typeDefs = resolveForwardDefinitions typeDefs'
 	let (aliases, direct) = partition (isTypeAlias.snd) typeDefs
-	let (result, _) = resolveTypeDefinitions' direct aliases
+	let (result, _) = resolveTypeAliases direct aliases
 	modify $ \s -> s { typeDefinitions = result }
 	-- uncomment next line to show list of types that are going to be compiled
 	-- traceShowM $ map fst result
 	-- use tail of result because we dont want va_list to be in there
 	mapM_ (addTypeDefn result) (tail result)
 	where
-		resolveTypeDefinitions' :: TypeTable -> TypeTable -> (TypeTable, TypeTable)
-		resolveTypeDefinitions' direct [] = (direct, [])
-		resolveTypeDefinitions' direct ((e@(n, QualifiedType (TypeAlias s) _)):as) = case lookup s direct of
-			Just t -> resolveTypeDefinitions' ((n,t):direct) as
+		resolveForwardDefinitions :: TypeTable -> TypeTable
+		resolveForwardDefinitions (t@(n, _):ts) = case lookup n ts of
+			-- TODO maybe check whether the forward definition matches its full definition?
+			Just _ -> resolveForwardDefinitions ts
+			Nothing -> t : resolveForwardDefinitions ts
+		resolveForwardDefinitions ts = ts
+		resolveTypeAliases :: TypeTable -> TypeTable -> (TypeTable, TypeTable)
+		resolveTypeAliases direct [] = (direct, [])
+		resolveTypeAliases direct ((e@(n, QualifiedType (TypeAlias aliasName) _)):aliases) = case lookup aliasName direct of
+			Just t -> resolveTypeAliases ((n,t):direct) aliases
 			-- HACK: omg maybe check if the first 7 are "struct " first?
-			Nothing -> case lookup (drop 7 s) direct of
-				Just t -> resolveTypeDefinitions' ((n,t):direct) as
-				Nothing -> trace ("Can't find type for definition: " ++ s ++ " " ++ (show e) ++ "\n" ++ (show direct)) $ undefined
+			Nothing -> case lookup (drop (length "struct ") aliasName) direct of
+				Just t -> resolveTypeAliases ((n,t):direct) aliases
+				Nothing -> trace ("Can't find type for definition: " ++ aliasName ++ " " ++ (show e) ++ "\n" ++ (show direct)) $ undefined
 
 generateStaticVariable :: Declaration -> Module ()
 generateStaticVariable decl = do
