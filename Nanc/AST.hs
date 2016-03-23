@@ -58,6 +58,10 @@ isTypeAlias _ = False
 returnType :: QualifiedType -> QualifiedType
 returnType (QualifiedType (FT (FunctionType t _)) _) = t
 
+arrayType :: QualifiedType -> QualifiedType
+arrayType (QualifiedType (Arr _n t) _) = t
+arrayType ar = trace ("Indexing non-array: " ++ show ar) undefined
+
 pointeeType :: QualifiedType -> QualifiedType
 pointeeType (QualifiedType (Ptr t) _) = t
 pointeeType pt = trace ("Dereferencing non-pointer: " ++ show pt) undefined

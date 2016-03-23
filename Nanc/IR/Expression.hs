@@ -88,11 +88,14 @@ expressionAddress ts (CCast decl expr _) = do
 	where
 		t = declarationType.buildDeclaration $ decl
 
+-- var[x]
 expressionAddress ts (CIndex subjectExpr expr _) = do
-	(addr, typ) <- expressionAddress ts subjectExpr
+	(addr, typ') <- expressionAddress ts subjectExpr
 	(index, _) <- expressionValue ts expr
+	let typ = arrayType typ'
 	let t = qualifiedTypeToType ts typ
 	delta <- mul (AST.IntegerType 64) (intConst64 $ fromIntegral $ sizeof t) index
+	-- TODO NEXT: use getelementptr here instead
 	newAddr <- add (AST.IntegerType 64) addr delta
 	return (newAddr, typ)
 
