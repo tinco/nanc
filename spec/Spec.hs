@@ -49,6 +49,7 @@ main = hspec $ do
 					let transformed = transformToLLVM ast
 					-- Uncomment for inspection of LLVM AST
 					-- traceM (render $ pretty ast)
+					-- traceM $ ppShow ast
 					-- traceM $ ppShow transformed
 					ir <- generateIR transformed
 					ir `shouldSatisfy` (/= T.empty)

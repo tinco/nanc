@@ -65,9 +65,12 @@ expressionAddress ts (CVar (Ident name _ _) _) = do
 	(address, resultType) <- getvar name
 	return (address, resultType)
 
--- var.field
-expressionAddress ts (CMember subjectExpr (Ident memName _ _) _bool _) = do
-	(addr, typ) <- expressionAddress ts subjectExpr
+-- var.field or var->field
+expressionAddress ts (CMember subjectExpr (Ident memName _ _) isArrow _) = do
+	(addr, typ) <- case isArrow of
+		False -> expressionAddress ts subjectExpr
+		True -> dereferenceExpression ts subjectExpr
+
 	let (i, resultType) = lookupMember ts typ memName
 	let resultType' = QualifiedType (Ptr resultType) defaultTypeQualifiers
 
@@ -95,13 +98,16 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 
 -- *var loads the value of var, and returns that (assuming
 -- it is an address)
-expressionAddress ts (CUnary CIndOp expr _) = do
+expressionAddress ts (CUnary CIndOp expr _) = dereferenceExpression ts expr
+
+expressionAddress _ts expr = trace ("IR ExpressionAddress unknown node: " ++ (show expr)) undefined
+
+dereferenceExpression :: TypeTable -> CExpr -> Codegen ExpressionResult
+dereferenceExpression ts expr = do
 	(addr, typ) <- expressionAddress ts expr
 	let t = qualifiedTypeToType ts typ
 	value <- load t addr
 	return (value, pointeeType typ)
-
-expressionAddress _ts expr = trace ("IR ExpressionAddress unknown node: " ++ (show expr)) undefined
 
 expressionValue :: TypeTable -> CExpr -> Codegen ExpressionResult
 
@@ -211,8 +217,8 @@ expressionValue ts (CBinary op leftExpr rightExpr _) = do
 	(result, t) <- binaryOp ts op (leftVal, typ) (rightVal, typ2)
 	return (result, t)
 
--- CVar (Ident "_p" 14431 n) n
-expressionValue ts m@(CMember subjectExpr (Ident memName _ _) _bool _) = do
+-- var.prop or var->prop
+expressionValue ts m@(CMember subjectExpr (Ident memName _ _) _isArrow _) = do
 	(addr, typ) <- expressionAddress ts m
 	let t = qualifiedTypeToType ts typ
 	value <- load t addr
