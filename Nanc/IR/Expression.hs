@@ -94,9 +94,8 @@ expressionAddress ts (CIndex subjectExpr expr _) = do
 	(index, _) <- expressionValue ts expr
 	let typ = arrayType typ'
 	let t = qualifiedTypeToType ts typ
-	delta <- mul (AST.IntegerType 64) (intConst64 $ fromIntegral $ sizeof t) index
-	-- TODO NEXT: use getelementptr here instead
-	newAddr <- add (AST.IntegerType 64) addr delta
+	let start = intConst64 0
+	newAddr <- instr t (AST.GetElementPtr True addr [start, index] [])
 	return (newAddr, typ)
 
 -- *var loads the value of var, and returns that (assuming
