@@ -8,6 +8,7 @@ import Language.C
 import Language.C.Data.Ident
 
 import Nanc.AST
+import qualified Nanc.AST.ConstantExpression as Constant
 
 metaToRandom :: NodeInfo -> Int
 metaToRandom (NodeInfo _ _ (Name i)) = i
@@ -75,9 +76,9 @@ buildDerivedType qt ddrs = buildDerivedType' qt (reverse ddrs)
 					isVoid [(QualifiedType (ST Void) _,_)] = True
 					isVoid _ = False
 
-		-- Super hacky: As long as we don't have a way to eval const expressions we'll just assume arrays have a huge length. Hopefully
-		-- that will just work...
-		buildArrType qt (CArrDeclr qs _ _) = trace ("We need a constEval for cexpressions in CArrDeclr") $ QualifiedType (Arr 10000 qt) (fst $ buildTypeQualifiers qs)
+		buildArrType qt (CArrDeclr qs (CNoArrSize True {- isCompleteType -}) _) = QualifiedType (Arr 0 qt) (fst $ buildTypeQualifiers qs)
+		buildArrType qt (CArrDeclr qs (CArrSize False {- isStatic -} expr) _) = QualifiedType (Arr (Constant.intValue expr) qt) (fst $ buildTypeQualifiers qs)
+		buildArrType qt arr = trace ("Got unsupported CArrDeclr: " ++ (show arr)) undefined
 
 {-
   CPtrDeclr [CTypeQualifier a] a	= Pointer declarator CPtrDeclr tyquals declr

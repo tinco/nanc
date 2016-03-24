@@ -85,6 +85,7 @@ library
 
   other-modules:
     Nanc.AST
+    Nanc.AST.ConstantExpression
     Nanc.AST.Declarations
     Nanc.CodeGenState
     Nanc.IR.CodeGen

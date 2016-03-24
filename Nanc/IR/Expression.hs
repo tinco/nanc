@@ -254,6 +254,7 @@ expressionValue ts (CCast decl expr _) = do
 		return (value, t)
 	where
 		t = declarationType.buildDeclaration $ decl
+
 -- var[e]
 expressionValue ts i@(CIndex subjectExpr expr _) = do
 	(addr, typ) <- expressionAddress ts i
