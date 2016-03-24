@@ -1,12 +1,12 @@
 
 int
-foo(int a, int b)
+foo(int a)
 {
-    return a + b;
+    return a;
 }
 
 int
 main()
 {
-    return foo(1, 2) - 3;
+    return foo(1);
 }

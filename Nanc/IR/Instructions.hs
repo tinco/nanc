@@ -132,8 +132,8 @@ ret val = do
 		then traceM ("Unreachable return in block: " ++ (show currentBlockName))
 		else void $ terminator $ Do $ Ret val []
 
-call :: Operand -> [Operand] -> Codegen Operand
-call fn args = instr double $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+call :: Type -> Operand -> [Operand] -> Codegen Operand
+call t fn args = instr t $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr (PointerType ty (AddrSpace 0)) $ Alloca ty Nothing 0 []

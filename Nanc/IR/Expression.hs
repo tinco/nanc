@@ -117,7 +117,8 @@ expressionValue :: TypeTable -> CExpr -> Codegen ExpressionResult
 expressionValue ts (CCall fn' args' _) = do
 	args <- mapM (expressionValue ts) args'
 	(fn,t) <- expressionValue ts fn'
-	result <- call fn (map fst args)
+	let rt = qualifiedTypeToType ts $ returnType t
+	result <- call rt fn (map fst args)
 	return (result, returnType t)
 
 -- var
