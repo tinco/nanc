@@ -10,7 +10,7 @@ import Language.C
 import Language.C.Data.Ident
 
 import qualified LLVM.General.AST as AST
-import LLVM.General.AST.Global
+import LLVM.General.AST.Global as ASTG
 import LLVM.General.AST.Operand
 import qualified LLVM.General.AST.Constant as C
 
@@ -125,13 +125,19 @@ buildGlobalSymbolTable ((name,qt,AST.GlobalDefinition gd):rest) = (b gd): buildG
 		b :: Global -> (String, Symbol)
 		b (GlobalVariable n _ _ _ _ _ _ _ t _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
 		b (GlobalAlias (AST.Name name) _ _ _ _ _ _ _) = trace ("unsupported global alias: " ++ name) (name, undefined)
-		b (Function _ _ _ _ _ t n _ _ _ _ _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference t n, qt))
+		-- We don't have access to the (full) typetable here, so we have to be super awkward about building the function type
+		b f@(Function _ _ _ _ _ t n _ _ _ _ _ _ _ _) = (name, (ConstantOperand $ C.GlobalReference (buildFunctionType f) n, qt))
 {- GlobalVariable Name Linkage Visibility Bool AddrSpace Bool Bool Type (Maybe Constant) (Maybe String) Word32	
    GlobalAlias Name Linkage Visibility Type Constant	
    Function Linkage Visibility CallingConvention [ParameterAttribute] Type Name ([Parameter], Bool) [FunctionAttribute] (Maybe String) Word32 (Maybe String) [BasicBlock] -}
 
 -- for now skip over typedefs in symboltable
 buildGlobalSymbolTable ((_name, _qt, AST.TypeDefinition (AST.Name _n) _maybeType):rest) = trace ("skipping: " ++ (show _n)) $ buildGlobalSymbolTable rest
+
+buildFunctionType :: Global -> AST.Type
+buildFunctionType f = AST.FunctionType (ASTG.returnType f) (map parameterType (fst $ parameters f)) (snd $ parameters f)
+	where
+		parameterType (AST.Parameter t _ _) = t
 
 {- GlobalDefinition Global	 
    TypeDefinition Name (Maybe Type)	 
