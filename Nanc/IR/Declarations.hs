@@ -21,6 +21,7 @@ import Nanc.AST.Declarations
 import Nanc.IR.Types
 import Nanc.IR.Statement
 import Nanc.IR.Expression
+import Nanc.IR.Instructions
 
 {-
 C99 requires that there is at least one specifier, though this is merely a syntactic restriction
@@ -155,14 +156,28 @@ generateFunDef (CFunDef specs declr _decls stat _) = do
 		let params = map (\d -> (declarationType d, declarationName d)) fnargs
 		let retTyp = declType declSpecs
 		let typ = QualifiedType (FT (FunctionType retTyp params)) defaultTypeQualifiers
-		let argumentSymbols = map (\ (d) -> (declarationName d, (LocalReference (qualifiedTypeToType typeDefs $ declarationType d) (AST.Name (declarationName d)), declarationType d))) fnargs
+		-- let argumentSymbols = map (\ (d) -> (declarationName d, (LocalReference (qualifiedTypeToType typeDefs $ declarationType d) (AST.Name (declarationName d)), declarationType d))) fnargs
 
 		let initialCodeGenState ds = (emptyCodegen litsCount) {
-			symboltables = [argumentSymbols, buildGlobalSymbolTable ds]
+			symboltables = [buildGlobalSymbolTable ds]
 		}
 		let cg = execCodegen (initialCodeGenState defs) $ do
 			entryB <- addBlock entryBlockName
 			setBlock entryB
+
+			-- HACK: we store our params in a temporary variable that gets
+			-- optimized out by llvm, this is needed because we currently
+			-- have no way of referring directly values in the symboltable
+			-- (it can only store adresses)
+			let declareParam (typ, name) = do
+				let t = qualifiedTypeToType typeDefs typ
+				let arg = LocalReference t (AST.Name name)
+				tmp <- alloca t
+				store t tmp arg
+				assign name (tmp, typ)
+
+			mapM declareParam params
+
 			generateStatement typeDefs stat
 
 			if name == "main" then do
