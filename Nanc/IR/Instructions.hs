@@ -166,3 +166,21 @@ operandToType _ = MetadataType
 contantOperandToType :: C.Constant -> Type
 contantOperandToType (C.GlobalReference t _) = t
 contantOperandToType c = trace ("Unknown constant type: " ++ show c) undefined
+
+
+{-
+	tryConstCast is used to coerce literals into the right type. 
+-}
+tryConstCast :: Type -> Type -> Operand -> Codegen (Maybe Operand)
+tryConstCast (ArrayType _ sourceT) (PointerType targetT _) val =
+			if sourceT == targetT
+				then return (Just val)
+				else return Nothing
+tryConstCast t1@(IntegerType l1) t2@(IntegerType l2) val
+	| l1 > l2 = do
+		result <- trunc val (fromIntegral l2)
+		return $ Just result
+	| otherwise = return Nothing
+tryConstCast t1 t2 _ = trace ("Don't know how to coerce: " ++ (show t1) ++ " into " ++ (show t2)) undefined
+
+

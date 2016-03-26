@@ -60,6 +60,8 @@ returnType (QualifiedType (FT (FunctionType t _)) _) = t
 
 arrayType :: QualifiedType -> QualifiedType
 arrayType (QualifiedType (Arr _n t) _) = t
+-- pointers are arrays too
+arrayType (QualifiedType (Ptr t) _) = t
 arrayType ar = trace ("Indexing non-array: " ++ show ar) undefined
 
 pointeeType :: QualifiedType -> QualifiedType
@@ -108,6 +110,9 @@ isSigned _ = False
 
 qualifiedTypeType :: QualifiedType -> TypeSpec
 qualifiedTypeType (QualifiedType t _) = t
+
+typeQualifiers :: QualifiedType -> TypeQualifiers
+typeQualifiers (QualifiedType _ qs) = qs
 
 data TypeQualifiers = TypeQualifiers {
 	typeIsVolatile :: Bool,

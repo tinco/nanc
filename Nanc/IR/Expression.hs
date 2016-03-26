@@ -136,15 +136,26 @@ expressionValue ts (CAssign CAssignOp leftExpr rightExpr nodeInfo) = do
 	(addr, typ) <- expressionAddress ts leftExpr
 	(val, typ2) <- expressionValue ts rightExpr
 
+	let throwError = error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2) ++ "NodeInfo: " ++ (show nodeInfo))
 	-- traceM $ "Ptr: " ++ (show addr)
 	-- traceM $ "Val: " ++ (show val)
 
+	let performStore val = do
+		let t = qualifiedTypeToType ts typ
+		store t addr val
+		return (val, typ)
+
 	if typ == typ2
-		then do
-			let t = qualifiedTypeToType ts typ2
-			store t addr val
-			return (val, typ)
-		else error ("Assignment types aren't equal: " ++ (show typ) ++ " vs. " ++ (show typ2) ++ "NodeInfo: " ++ (show nodeInfo))
+		then performStore val
+		else if (typeIsConst.typeQualifiers) typ2
+			then do
+				let t1 = qualifiedTypeToType ts typ
+				let t2 = qualifiedTypeToType ts typ2
+				maybeResult <- tryConstCast t2 t1 val
+				case maybeResult of
+					Just val -> performStore val
+					Nothing -> throwError
+			else throwError
 
 -- var *= bar
 expressionValue ts (CAssign assignOp leftExpr rightExpr _) = do
